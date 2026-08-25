@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="2d585028-95f6-4a64-bf6c-3130e8ac8c5d" name="ink.sparkypos">
+        <fileTransfer accessType="SFTP" host="40.134.126.65" port="22" sshConfigId="40a2bba9-28f3-49cf-b2da-59609a5ca38a" sshConfig="root@40.134.126.65:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

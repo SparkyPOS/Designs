@@ -1,0 +1,447 @@
+{
+    "banner": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Banner Section",
+        "content": {
+            "images": {
+                "image": {
+                    "size": "710x1400"
+                },
+                "overlay_image": {
+                    "size": "420x420"
+                },
+                "video_thumbnail": {
+                    "size": "650x275"
+                }
+            },
+            "heading": "text",
+            "subheading": "text",
+            "button_text": "text",
+            "button_link": "text",
+            "video_url": "text",
+            "rating_star_count": "text",
+            "rating": "text",
+            "rating_text": "text"
+        }
+    },
+    "promotion": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Promotion Section",
+        "content": {
+            "title": "text"
+        }
+    },
+    "partners": {
+        "builder": true,
+        "name": "Partner's Section",
+        "content": {
+            "title": "text"
+        },
+        "element": {
+            "modal": true,
+            "images": {
+                "image": {
+                    "size": "280x70"
+                }
+            }
+        }
+    },
+    "feature": {
+        "builder": true,
+        "name": "Feature Section",
+        "content": {
+            "heading": "text",
+            "button_one_text": "text",
+            "button_one_link": "text",
+            "button_two_text": "text",
+            "button_two_link": "text"
+        },
+        "element": {
+            "title": "text",
+            "description": "textarea",
+            "images": {
+                "image": {
+                    "size": "860x1080"
+                }
+            },
+            "modal": true
+        }
+    },
+    "top_catalog": {
+        "builder": true,
+        "name": "Top Catalog Section",
+        "content": {
+            "heading": "text"
+        }
+    },
+    "gallery": {
+        "builder": true,
+        "name": "Gallery Section",
+        "content": {
+            "heading": "text",
+            "images": {
+                "image_one": {
+                    "size": "1065x1505"
+                },
+                "image_two": {
+                    "size": "1500x730"
+                },
+                "image_three": {
+                    "size": "735x735"
+                },
+                "image_four": {
+                    "size": "735x735"
+                }
+            }
+        }
+    },
+    "counter": {
+        "builder": true,
+        "name": "Counter Section",
+        "content": {
+            "heading": "text",
+            "images": {
+                "image":{
+                    "size": "1935x1030"
+                }
+            }
+        },
+        "element": {
+            "title": "text",
+            "counter_number": "text",
+            "counter_suffix": "text",
+            "modal": true
+        }
+    },
+    "policy_pages": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Policy Pages",
+        "hide_builder": true,
+        "element": {
+            "title": "text",
+            "slug": "title",
+            "details": "textarea-nic",
+            "modal": false,
+            "seo": true
+        }
+    },
+    "register_disable": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Registration Disable",
+        "content": {
+            "images": {
+                "image": {
+                    "size": "280x280"
+                }
+            },
+            "heading": "text",
+            "subheading": "text",
+            "button_name": "text",
+            "button_url": "text"
+        }
+    },
+    "faq": {
+        "builder": true,
+        "name": "FAQ Section",
+        "content": {
+            "heading": "text",
+            "subheading": "text"
+        },
+        "element": {
+            "question": "text",
+            "answer": "textarea",
+            "modal": true
+        }
+    },
+    "testimonial": {
+        "builder": true,
+        "name": "Testimonial Section",
+        "content": {
+            "heading": "text"
+        },
+        "element": {
+            "content": "textarea",
+            "customer": "text",
+            "customer_profession": "text",
+            "modal": true,
+            "images": {
+                "image": {
+                    "size": "1055x1325"
+                }
+            }
+        }
+    },
+    "cta": {
+        "builder": true,
+        "no_selection": false,
+        "name": "CTA Section",
+        "content": {
+            "images": {
+                "image": {
+                    "size": "1275x760"
+                }
+            },
+            "heading": "text",
+            "button_text": "text",
+            "button_link": "text"
+        }
+    },
+    "cta_two": {
+        "builder": true,
+        "no_selection": false,
+        "name": "CTA Two Section",
+        "content": {
+            "images": {
+                "image": {
+                    "size": "1230x1230"
+                }
+            },
+            "heading": "text",
+            "subheading": "textarea",
+            "button_text": "text",
+            "button_link": "text",
+            "button_title": "text"
+        }
+    },
+    "blog": {
+        "builder": true,
+        "name": "Blog Section",
+        "content": {
+            "heading": "text"
+        },
+        "element": {
+            "images": {
+                "image": {
+                    "size": "1935x1100",
+                    "thumb": "775x440"
+                }
+            },
+            "title": "text",
+            "slug": "title",
+            "description": "textarea-nic",
+            "modal": false,
+            "seo": true
+        }
+    },
+    "social_icon": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Social Icons",
+        "element": {
+            "title": "text",
+            "social_icon": "icon",
+            "url": "text",
+            "modal": true
+        }
+    },
+    "contact_us": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Contact Us",
+        "content": {
+            "heading": "text",
+            "subheading": "text",
+            "email_address": "text",
+            "contact_number": "text",
+            "contact_details": "text",
+            "map_link": "text"
+        },
+        "element": {
+            "title": "text",
+            "icon": "icon",
+            "modal": true
+        }
+    },
+    "catalog": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Catalog Page",
+        "content": {
+            "heading": "text",
+            "subheading": "text"
+        }
+    },
+    "product": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Product Page",
+        "content": {
+            "heading": "text",
+            "subheading": "text"
+        }
+    },
+    "register": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Register Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "profile_complete": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Profile Complete Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "forget_password": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Forget Password Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "login": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Login Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "2fa": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Two Factor Authentication Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "email_verification": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Email Verification Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "mobile_verification": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Mobile Verification Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "reset_password": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Reset Password Page",
+        "content": {
+            "form_heading": "text",
+            "heading": "text",
+            "subheading": "text",
+            "images": {
+                "image": {
+                    "size": "1905x1295"
+                }
+            }
+        },
+        "element": {
+            "modal": true,
+            "list_item": "text"
+        }
+    },
+    "kyc": {
+        "builder": true,
+        "no_selection": true,
+        "name": "KYC Content",
+        "content": {
+            "required": "text",
+            "pending": "text",
+            "reject": "text"
+        }
+    },
+    "footer": {
+        "builder": true,
+        "no_selection": true,
+        "name": "Footer",
+        "content": {
+            "description": "textarea"
+        }
+    }
+}
