@@ -67,7 +67,7 @@
                                                                 for="regular_price{{ $variant->id }}">@lang('Regular Price')</label>
                                                             <div class="input-group input--group">
                                                                 <span class="input-group-text">@lang(gs('cur_sym'))</span>
-                                                                <input type="number" step="any"
+                                                                <input type="number" step="any" min="0" inputmode="decimal"
                                                                     id="regular_price{{ $variant->id }}"
                                                                     class="form-control form--control"
                                                                     name="regular_price[]"
@@ -84,7 +84,7 @@
                                                             <div class="input-group input--group">
                                                                 <span class="input-group-text">@lang(gs('cur_sym'))</span>
                                                                 <input type="number" class="form-control form--control"
-                                                                    step="any" id="salePrice{{ $variant->id }}"
+                                                                    step="any" min="0" inputmode="decimal" id="salePrice{{ $variant->id }}"
                                                                     name="sale_price[]"
                                                                     value="{{ old('sale_price.' . $loop->index, $variant->sale_price) }}"
                                                                     required />
