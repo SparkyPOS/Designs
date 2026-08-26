@@ -480,6 +480,7 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
     ];
     const modelPosition = [setting('offset_x', 0), setting('offset_y', 0), 0];
     const modelScale = setting('model_scale', 1);
+    const modelScaleVector = [modelScale, modelScale, modelScale];
 
     const exactModel = nodes['T-Shirt_1'] && nodes['T-Shirt_2'] && nodes['T-Shirt_3'] && nodes['T-Shirt001'];
     const genericFront = useMemo(() => {
@@ -603,7 +604,7 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
             1,
         ];
         return (
-            <group dispose={null} rotation={modelRotation} position={modelPosition} scale={modelScale}>
+            <group dispose={null} rotation={modelRotation} position={modelPosition} scale={modelScaleVector}>
                 <primitive object={genericModel.scene} />
                 {genericModel.decalGeometry && <>
                     <mesh geometry={genericModel.decalGeometry} onClick={() => onView('front')}>
@@ -628,20 +629,28 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
     }
 
     return (
-        <group rotation={modelRotation} position={modelPosition} scale={modelScale}>
+        <group rotation={modelRotation} position={modelPosition} scale={modelScaleVector}>
             <Center position={[0, 0.1, 0]}>
                 <group dispose={null}>
                     <group rotation={[Math.PI / 2, 0, 0]}>
                         <mesh scale={7.5} position={[0, 0, 2]} geometry={nodes['T-Shirt_1'].geometry} material={materials.Shirt} castShadow receiveShadow />
                         <mesh scale={7.5} position={[0, 0, 2]} geometry={nodes['T-Shirt_2'].geometry} onClick={() => onView('front')}>
                             <meshBasicMaterial transparent opacity={0} />
-                            <Decal position={[0, 0.2, -0.31]} rotation={[-Math.PI / 2 - 0.05, 0, Math.PI]} scale={[0.52, 0.7, 0.5]}>
+                            <Decal
+                                position={[setting('front_x', 0), 0.2 + setting('front_y', 0), -0.31]}
+                                rotation={[-Math.PI / 2 - 0.05, 0, Math.PI]}
+                                scale={[0.52 * setting('front_width', 1), 0.7 * setting('front_height', 1), 0.5]}
+                            >
                                 <meshStandardMaterial map={front} toneMapped={false} transparent polygonOffset polygonOffsetFactor={-1} />
                             </Decal>
                         </mesh>
                         <mesh scale={7.5} position={[0, 0, 2]} geometry={nodes['T-Shirt_3'].geometry} onClick={() => onView('back')}>
                             <meshBasicMaterial transparent opacity={0} />
-                            <Decal position={[0, -0.2, -0.27]} rotation={[Math.PI / 2 - 0.2, 0, Math.PI]} scale={[0.52, 0.7, 0.5]}>
+                            <Decal
+                                position={[-setting('back_x', 0), -0.2 + setting('back_y', 0), -0.27]}
+                                rotation={[Math.PI / 2 - 0.2, 0, Math.PI]}
+                                scale={[0.52 * setting('back_width', 1), 0.7 * setting('back_height', 1), 0.5]}
+                            >
                                 <meshStandardMaterial map={genericBack} toneMapped={false} transparent polygonOffset polygonOffsetFactor={-1} />
                             </Decal>
                         </mesh>

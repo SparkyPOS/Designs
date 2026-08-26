@@ -8,12 +8,12 @@
             'label' => __('Model position'),
             'description' => __('Fit and orient the model in the viewer.'),
             'fields' => [
-                ['model_scale', __('Model size'), 0.1, 5, 0.05, __('Makes the complete model larger or smaller.'), false],
-                ['rotation_x', __('Tilt forward / back'), -180, 180, 0.1, __('Rotates the model around the horizontal axis.'), true],
-                ['rotation_y', __('Turn left / right'), -180, 180, 0.1, __('Changes which direction is treated as the front.'), false],
-                ['rotation_z', __('Tilt left / right'), -180, 180, 0.1, __('Corrects a model that appears tilted.'), true],
-                ['offset_x', __('Move left / right'), -3, 3, 0.05, __('Moves the complete model horizontally.'), true],
-                ['offset_y', __('Move up / down'), -3, 3, 0.05, __('Moves the complete model vertically.'), true],
+                ['model_scale', __('Model size'), 'any', __('Makes the complete model larger or smaller.'), false],
+                ['rotation_x', __('Tilt forward / back'), 'any', __('Rotates the model around the horizontal axis.'), true],
+                ['rotation_y', __('Turn left / right'), 'any', __('Changes which direction is treated as the front.'), false],
+                ['rotation_z', __('Tilt left / right'), 'any', __('Corrects a model that appears tilted.'), true],
+                ['offset_x', __('Move left / right'), 'any', __('Moves the complete model horizontally.'), true],
+                ['offset_y', __('Move up / down'), 'any', __('Moves the complete model vertically.'), true],
             ],
         ],
         [
@@ -21,10 +21,10 @@
             'label' => __('Front print area'),
             'description' => __('Position the artwork shown on the front.'),
             'fields' => [
-                ['front_x', __('Move left / right'), -2, 2, 0.05, __('Moves only the front artwork horizontally.'), false],
-                ['front_y', __('Move up / down'), -2, 2, 0.05, __('Moves only the front artwork vertically.'), false],
-                ['front_width', __('Artwork width'), 0.2, 2, 0.05, __('Changes the width of the front artwork.'), false],
-                ['front_height', __('Artwork height'), 0.2, 2, 0.05, __('Changes the height of the front artwork.'), false],
+                ['front_x', __('Move left / right'), 'any', __('Moves only the front artwork horizontally.'), false],
+                ['front_y', __('Move up / down'), 'any', __('Moves only the front artwork vertically.'), false],
+                ['front_width', __('Artwork width'), 'any', __('Changes the width of the front artwork.'), false],
+                ['front_height', __('Artwork height'), 'any', __('Changes the height of the front artwork.'), false],
             ],
         ],
         [
@@ -32,10 +32,10 @@
             'label' => __('Back print area'),
             'description' => __('Position the artwork shown on the back.'),
             'fields' => [
-                ['back_x', __('Move left / right'), -2, 2, 0.05, __('Moves only the back artwork horizontally.'), false],
-                ['back_y', __('Move up / down'), -2, 2, 0.05, __('Moves only the back artwork vertically.'), false],
-                ['back_width', __('Artwork width'), 0.2, 2, 0.05, __('Changes the width of the back artwork.'), false],
-                ['back_height', __('Artwork height'), 0.2, 2, 0.05, __('Changes the height of the back artwork.'), false],
+                ['back_x', __('Move left / right'), 'any', __('Moves only the back artwork horizontally.'), false],
+                ['back_y', __('Move up / down'), 'any', __('Moves only the back artwork vertically.'), false],
+                ['back_width', __('Artwork width'), 'any', __('Changes the width of the back artwork.'), false],
+                ['back_height', __('Artwork height'), 'any', __('Changes the height of the back artwork.'), false],
             ],
         ],
     ];
@@ -59,7 +59,7 @@
                         <small class="text-muted">{{ $group['description'] }}</small>
                     </div>
                     <div class="row g-2">
-                        @foreach ($group['fields'] as [$key, $label, $min, $max, $step, $help, $advanced])
+                        @foreach ($group['fields'] as [$key, $label, $step, $help, $advanced])
                             <div class="col-6 {{ $advanced ? 'ink-advanced-setting' : '' }}" data-setting-key="{{ $key }}">
                                 <label for="{{ $idPrefix }}-{{ $key }}" class="form-label small mb-1" title="{{ $help }}">
                                     {{ $label }} <span class="ink-setting-help" aria-hidden="true">?</span>
@@ -70,8 +70,6 @@
                                     class="form-control form-control-sm"
                                     name="designer_settings[{{ $key }}]"
                                     value="{{ $settings[$key] }}"
-                                    min="{{ $min }}"
-                                    max="{{ $max }}"
                                     step="{{ $step }}"
                                     inputmode="decimal"
                                     aria-describedby="{{ $idPrefix }}-{{ $key }}-help"
