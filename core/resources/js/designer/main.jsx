@@ -6,6 +6,8 @@ import * as THREE from 'three';
 import './designer.css';
 
 const fabric = window.fabric;
+const DESIGN_CANVAS_WIDTH = 600;
+const DESIGN_CANVAS_HEIGHT = 400;
 const BLANK_TEXTURE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLqWQAAAABJRU5ErkJggg==';
 const SETTINGS_PREVIEW_TEXTURE = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
@@ -120,6 +122,7 @@ function makeShape(type, color) {
 
 function CanvasStage({ area, active, register, onTexture, onState }) {
     const elementRef = useRef(null);
+    const stageRef = useRef(null);
     const canvasRef = useRef(null);
     const borderRef = useRef(null);
     const selectedAreaRef = useRef(area.selectedArea);
@@ -244,8 +247,8 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
     useEffect(() => {
         if (!fabric || !elementRef.current) return undefined;
         const canvas = new fabric.Canvas(elementRef.current, {
-            width: 600,
-            height: 400,
+            width: DESIGN_CANVAS_WIDTH,
+            height: DESIGN_CANVAS_HEIGHT,
             preserveObjectStacking: true,
             selection: true,
         });
@@ -449,9 +452,55 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
         };
     }, []);
 
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const stage = stageRef.current;
+        const host = stage?.parentElement;
+        if (!canvas || !stage || !host) return undefined;
+
+        let frameId = 0;
+        let previousSize = '';
+        const resizeDisplay = () => {
+            window.cancelAnimationFrame(frameId);
+            frameId = window.requestAnimationFrame(() => {
+                const styles = window.getComputedStyle(host);
+                const horizontalPadding = parseFloat(styles.paddingLeft || '0') + parseFloat(styles.paddingRight || '0');
+                const availableWidth = Math.max(1, host.clientWidth - horizontalPadding);
+                const displayScale = Math.min(1, availableWidth / DESIGN_CANVAS_WIDTH);
+                const displayWidth = Math.round(DESIGN_CANVAS_WIDTH * displayScale);
+                const displayHeight = Math.round(DESIGN_CANVAS_HEIGHT * displayScale);
+                const nextSize = `${displayWidth}x${displayHeight}`;
+
+                if (nextSize !== previousSize) {
+                    canvas.setDimensions({
+                        width: `${displayWidth}px`,
+                        height: `${displayHeight}px`,
+                    }, { cssOnly: true });
+                    stage.style.width = `${displayWidth}px`;
+                    stage.style.height = `${displayHeight}px`;
+                    previousSize = nextSize;
+                }
+
+                canvas.calcOffset();
+                canvas.requestRenderAll();
+            });
+        };
+
+        const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resizeDisplay) : null;
+        observer?.observe(host);
+        window.addEventListener('resize', resizeDisplay);
+        resizeDisplay();
+
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener('resize', resizeDisplay);
+            window.cancelAnimationFrame(frameId);
+        };
+    }, [active]);
+
     return (
-        <div className={`ink-canvas-stage ${active ? 'is-active' : ''}`} aria-hidden={!active}>
-            <canvas ref={elementRef} width="600" height="400" />
+        <div ref={stageRef} className={`ink-canvas-stage ${active ? 'is-active' : ''}`} aria-hidden={!active}>
+            <canvas ref={elementRef} width={DESIGN_CANVAS_WIDTH} height={DESIGN_CANVAS_HEIGHT} />
         </div>
     );
 }
@@ -967,10 +1016,10 @@ function Tools({ api, tool, setTool, editorState }) {
                     <span>{editorState.layers?.length || 0} objects</span>
                 </div>
                 <div className="ink-layer-actions">
-                    <button type="button" title="Duplicate selected (Ctrl/⌘ + D)" onClick={() => api?.duplicate()}>⧉</button>
-                    <button type="button" title="Move selected forward" onClick={() => api?.moveLayer('forward')}>↑</button>
-                    <button type="button" title="Move selected backward" onClick={() => api?.moveLayer('backward')}>↓</button>
-                    <button type="button" title="Center selected in print area" onClick={() => api?.centerSelected()}>◎</button>
+                    <button type="button" title="Duplicate selected (Ctrl/⌘ + D)" aria-label="Duplicate selected layer" onClick={() => api?.duplicate()}>⧉</button>
+                    <button type="button" title="Move selected forward" aria-label="Move selected layer forward" onClick={() => api?.moveLayer('forward')}>↑</button>
+                    <button type="button" title="Move selected backward" aria-label="Move selected layer backward" onClick={() => api?.moveLayer('backward')}>↓</button>
+                    <button type="button" title="Center selected in print area" aria-label="Center selected layer in print area" onClick={() => api?.centerSelected()}>◎</button>
                 </div>
                 <div className="ink-layer-list">
                     {editorState.layers?.length ? editorState.layers.map((layer, index) => (
@@ -1106,20 +1155,20 @@ function DesignerApp({ config }) {
                         <div className="ink-canvas-column">
                             <div className="ink-canvas-actions">
                                 <div>
-                                    <button type="button" title="Undo" onClick={() => activeApi?.undo()}>↶</button>
-                                    <button type="button" title="Redo" onClick={() => activeApi?.redo()}>↷</button>
+                                    <button type="button" title="Undo" aria-label="Undo" onClick={() => activeApi?.undo()}>↶</button>
+                                    <button type="button" title="Redo" aria-label="Redo" onClick={() => activeApi?.redo()}>↷</button>
                                 </div>
                                 <div>
-                                    <button type="button" title="Zoom out" onClick={() => activeApi?.zoom(.85)}>−</button>
-                                    <button type="button" title="Fit design area" onClick={() => activeApi?.fit()}>Fit</button>
-                                    <button type="button" title="Reset zoom" onClick={() => activeApi?.resetZoom()}>{activeEditorState.zoom}%</button>
-                                    <button type="button" title="Zoom in" onClick={() => activeApi?.zoom(1.15)}>＋</button>
+                                    <button type="button" title="Zoom out" aria-label="Zoom out" onClick={() => activeApi?.zoom(.85)}>−</button>
+                                    <button type="button" title="Fit design area" aria-label="Fit design area" onClick={() => activeApi?.fit()}>Fit</button>
+                                    <button type="button" title="Reset zoom" aria-label={`Reset zoom, currently ${activeEditorState.zoom}%`} onClick={() => activeApi?.resetZoom()}>{activeEditorState.zoom}%</button>
+                                    <button type="button" title="Zoom in" aria-label="Zoom in" onClick={() => activeApi?.zoom(1.15)}>＋</button>
                                 </div>
                                 <div>
-                                    <button type="button" title="Duplicate selected" onClick={() => activeApi?.duplicate()}>⧉</button>
-                                    <button type="button" title="Center selected" onClick={() => activeApi?.centerSelected()}>◎</button>
-                                    <button type="button" title="Delete selected" onClick={() => activeApi?.deleteSelected()}>⌫</button>
-                                    <button type="button" title="Clear design" onClick={() => { if (window.confirm('Clear all artwork from this print area?')) activeApi?.clear(); }}>Clear</button>
+                                    <button type="button" title="Duplicate selected" aria-label="Duplicate selected object" onClick={() => activeApi?.duplicate()}>⧉</button>
+                                    <button type="button" title="Center selected" aria-label="Center selected object" onClick={() => activeApi?.centerSelected()}>◎</button>
+                                    <button type="button" title="Delete selected" aria-label="Delete selected object" onClick={() => activeApi?.deleteSelected()}>⌫</button>
+                                    <button type="button" title="Clear design" aria-label="Clear all artwork from this print area" onClick={() => { if (window.confirm('Clear all artwork from this print area?')) activeApi?.clear(); }}>Clear</button>
                                 </div>
                             </div>
                             <div className="ink-canvas-wrap">
