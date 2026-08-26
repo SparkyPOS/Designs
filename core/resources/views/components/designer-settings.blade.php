@@ -8,10 +8,10 @@
             'label' => __('Model position'),
             'description' => __('Fit and orient the model in the viewer.'),
             'fields' => [
-                ['model_scale', __('Model size'), 1, 5, 1, __('Makes the complete model larger or smaller.'), false],
-                ['rotation_x', __('Tilt forward / back'), -180, 180, 1, __('Rotates the model around the horizontal axis.'), true],
-                ['rotation_y', __('Turn left / right'), -180, 180, 1, __('Changes which direction is treated as the front.'), false],
-                ['rotation_z', __('Tilt left / right'), -180, 180, 1, __('Corrects a model that appears tilted.'), true],
+                ['model_scale', __('Model size'), 0.1, 5, 0.05, __('Makes the complete model larger or smaller.'), false],
+                ['rotation_x', __('Tilt forward / back'), -180, 180, 0.1, __('Rotates the model around the horizontal axis.'), true],
+                ['rotation_y', __('Turn left / right'), -180, 180, 0.1, __('Changes which direction is treated as the front.'), false],
+                ['rotation_z', __('Tilt left / right'), -180, 180, 0.1, __('Corrects a model that appears tilted.'), true],
                 ['offset_x', __('Move left / right'), -3, 3, 0.05, __('Moves the complete model horizontally.'), true],
                 ['offset_y', __('Move up / down'), -3, 3, 0.05, __('Moves the complete model vertically.'), true],
             ],
@@ -23,8 +23,8 @@
             'fields' => [
                 ['front_x', __('Move left / right'), -2, 2, 0.05, __('Moves only the front artwork horizontally.'), false],
                 ['front_y', __('Move up / down'), -2, 2, 0.05, __('Moves only the front artwork vertically.'), false],
-                ['front_width', __('Artwork width'), 1, 2, 1, __('Changes the width of the front artwork.'), false],
-                ['front_height', __('Artwork height'), 1, 2, 1, __('Changes the height of the front artwork.'), false],
+                ['front_width', __('Artwork width'), 0.2, 2, 0.05, __('Changes the width of the front artwork.'), false],
+                ['front_height', __('Artwork height'), 0.2, 2, 0.05, __('Changes the height of the front artwork.'), false],
             ],
         ],
         [
@@ -34,8 +34,8 @@
             'fields' => [
                 ['back_x', __('Move left / right'), -2, 2, 0.05, __('Moves only the back artwork horizontally.'), false],
                 ['back_y', __('Move up / down'), -2, 2, 0.05, __('Moves only the back artwork vertically.'), false],
-                ['back_width', __('Artwork width'), 1, 2, 1, __('Changes the width of the back artwork.'), false],
-                ['back_height', __('Artwork height'), 1, 2, 1, __('Changes the height of the back artwork.'), false],
+                ['back_width', __('Artwork width'), 0.2, 2, 0.05, __('Changes the width of the back artwork.'), false],
+                ['back_height', __('Artwork height'), 0.2, 2, 0.05, __('Changes the height of the back artwork.'), false],
             ],
         ],
     ];
@@ -69,12 +69,11 @@
                                     type="number"
                                     class="form-control form-control-sm"
                                     name="designer_settings[{{ $key }}]"
-                                    value="{{ round($settings[$key]) }}"
+                                    value="{{ $settings[$key] }}"
                                     min="{{ $min }}"
                                     max="{{ $max }}"
                                     step="{{ $step }}"
-                                    inputmode="numeric"
-                                    data-integer-setting
+                                    inputmode="decimal"
                                     aria-describedby="{{ $idPrefix }}-{{ $key }}-help"
                                     required
                                 >

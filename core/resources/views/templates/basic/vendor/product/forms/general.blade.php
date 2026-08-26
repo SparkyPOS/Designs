@@ -49,7 +49,7 @@
             <label class="form--label" for="regular_price">@lang('Regular Price')</label>
             <div class="input-group input--group">
                 <span class="input-group-text">{{ gs('cur_sym') }}</span>
-                <input type="number" class="form--control form-control" name="regular_price"
+                <input type="number" class="form--control form-control" name="regular_price" step="any" min="0" inputmode="decimal"
                     value="{{ old('product_type', $product?->product_type) == Status::PRODUCT_TYPE_SIMPLE ? old('regular_price', $product?->regular_price) : null }}"
                     id="regular_price" @required(old('product_type', $product?->product_type) != Status::PRODUCT_TYPE_VARIABLE)>
             </div>
@@ -61,7 +61,7 @@
             <label class="form--label" for="sale_price">@lang('Sale Price')</label>
             <div class="input-group input--group">
                 <span class="input-group-text">{{ gs('cur_sym') }}</span>
-                <input type="number" class="form--control form-control" name="sale_price"
+                <input type="number" class="form--control form-control" name="sale_price" step="any" min="0" inputmode="decimal"
                     value="{{ old('product_type', $product?->product_type) == Status::PRODUCT_TYPE_SIMPLE ? old('sale_price', $product?->sale_price) : null }}"
                     id="sale_price" @required(old('product_type', $product?->product_type) != Status::PRODUCT_TYPE_VARIABLE)>
             </div>
