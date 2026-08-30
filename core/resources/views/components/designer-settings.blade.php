@@ -2,6 +2,10 @@
     $settings = $product->resolvedDesignerSettings();
     $defaults = \App\Models\Product::designerSettingsDefaults();
     $idPrefix = $idPrefix ?? 'designer';
+    $printAreas = $product?->productPrintAreas ?? collect();
+    $frontPrintArea = $printAreas->first(fn ($area) => !str_contains(strtolower($area->name), 'back'));
+    $backPrintArea = $printAreas->first(fn ($area) => str_contains(strtolower($area->name), 'back'));
+    $defaultPrintSelection = ['type' => 'rect', 'left' => 156, 'top' => 90, 'angle' => 0, 'width' => 285, 'height' => 440];
     $groups = [
         [
             'key' => 'model',
@@ -111,4 +115,40 @@
             </div>
         @endforeach
     </div>
+
+    <div class="ink-print-background-settings mt-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <h6 class="mb-1">@lang('2D Designer Backgrounds')</h6>
+                <p class="text-muted mb-0">@lang('Upload the Front and Back images customers will draw on. Drag and resize the blue boundary to set the printable area.')</p>
+            </div>
+            <span class="badge badge--primary">@lang('Interactive')</span>
+        </div>
+        <div class="row g-3">
+            @foreach ([
+                'front' => ['label' => __('Front'), 'area' => $frontPrintArea],
+                'back' => ['label' => __('Back'), 'area' => $backPrintArea],
+            ] as $side => $printSetup)
+                @php
+                    $area = $printSetup['area'];
+                    $selection = json_decode($area?->selected_area ?? '', true) ?: $defaultPrintSelection;
+                    $image = $area?->image ?: 'default-product-print-area.png';
+                @endphp
+                <div class="col-xl-6">
+                    <div
+                        data-print-area-editor
+                        data-side="{{ $side }}"
+                        data-label="{{ $printSetup['label'] }}"
+                        data-input-id="{{ $idPrefix }}-print-area-{{ $side }}"
+                        data-image-url="{{ getImage(getFilePath('printArea') . '/' . $image) }}"
+                        data-selected="{{ json_encode($selection) }}"
+                    ></div>
+                </div>
+            @endforeach
+        </div>
+    </div>
 </div>
+
+@pushOnce('script-lib')
+    <script src="{{ asset('assets/global/js/fabric.min.js') }}"></script>
+@endPushOnce

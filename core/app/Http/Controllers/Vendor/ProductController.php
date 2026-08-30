@@ -13,6 +13,7 @@ use App\Models\ProductVariant;
 use App\Models\ProductPrintArea;
 use App\Http\Controllers\Controller;
 use App\Services\ProductValidationService;
+use App\Services\ProductPrintAreaService;
 use Illuminate\Database\Eloquent\Collection;
 
 class ProductController extends Controller {
@@ -302,6 +303,13 @@ class ProductController extends Controller {
         }
 
         $this->ensureDefaultPrintArea($product);
+
+        try {
+            app(ProductPrintAreaService::class)->updateFromRequest($request, $product);
+        } catch (\Exception $exp) {
+            $notify[] = ['error', 'Couldn\'t update the designer canvas images'];
+            return back()->withNotify($notify);
+        }
 
         $notify[] = ['success', $request->isUpdateOrNew === 'new'
             ? 'Product created successfully'

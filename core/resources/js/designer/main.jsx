@@ -564,6 +564,249 @@ function CanvasStage({ area, active, register, onTexture, onState, engrave, garm
     );
 }
 
+function PrintAreaEditor({ element }) {
+    const side = element.dataset.side;
+    const label = element.dataset.label;
+    const inputId = element.dataset.inputId;
+    const initialSelection = useMemo(() => {
+        try {
+            return JSON.parse(element.dataset.selected || '{}');
+        } catch (error) {
+            return {};
+        }
+    }, [element]);
+    const [selection, setSelection] = useState(initialSelection);
+    const [imageUrl, setImageUrl] = useState(element.dataset.imageUrl);
+    const [fileName, setFileName] = useState('');
+    const [error, setError] = useState('');
+    const canvasElementRef = useRef(null);
+    const stageRef = useRef(null);
+    const canvasRef = useRef(null);
+    const imageRef = useRef(null);
+    const boundaryRef = useRef(null);
+    const hiddenInputRef = useRef(null);
+    const selectionRef = useRef(initialSelection);
+    const imageLoadRef = useRef(0);
+
+    const syncSelection = useCallback(() => {
+        const image = imageRef.current;
+        const boundary = boundaryRef.current;
+        if (!image || !boundary) return;
+        const imageLeft = image.left - image.getScaledWidth() / 2;
+        const imageTop = image.top - image.getScaledHeight() / 2;
+        const next = {
+            type: selectionRef.current.type === 'circle' ? 'circle' : 'rect',
+            left: Number(((boundary.left - imageLeft) / image.scaleX).toFixed(4)),
+            top: Number(((boundary.top - imageTop) / image.scaleY).toFixed(4)),
+            angle: 0,
+            width: Number((boundary.width * boundary.scaleX / image.scaleX).toFixed(4)),
+            height: Number((boundary.height * boundary.scaleY / image.scaleY).toFixed(4)),
+        };
+        selectionRef.current = next;
+        if (hiddenInputRef.current) hiddenInputRef.current.value = JSON.stringify(next);
+        setSelection(next);
+    }, []);
+
+    const keepBoundaryOnImage = useCallback(() => {
+        const image = imageRef.current;
+        const boundary = boundaryRef.current;
+        if (!image || !boundary) return;
+        const imageLeft = image.left - image.getScaledWidth() / 2;
+        const imageTop = image.top - image.getScaledHeight() / 2;
+        const imageWidth = image.getScaledWidth();
+        const imageHeight = image.getScaledHeight();
+        let boundaryWidth = boundary.width * boundary.scaleX;
+        let boundaryHeight = boundary.height * boundary.scaleY;
+
+        if (boundaryWidth > imageWidth || boundaryHeight > imageHeight) {
+            const scale = Math.min(imageWidth / Math.max(boundaryWidth, 1), imageHeight / Math.max(boundaryHeight, 1));
+            boundary.scaleX *= scale;
+            boundary.scaleY *= scale;
+            boundaryWidth = boundary.width * boundary.scaleX;
+            boundaryHeight = boundary.height * boundary.scaleY;
+        }
+
+        boundary.left = THREE.MathUtils.clamp(boundary.left, imageLeft, imageLeft + imageWidth - boundaryWidth);
+        boundary.top = THREE.MathUtils.clamp(boundary.top, imageTop, imageTop + imageHeight - boundaryHeight);
+        boundary.setCoords();
+    }, []);
+
+    const placeBoundary = useCallback((sourceSelection) => {
+        const canvas = canvasRef.current;
+        const image = imageRef.current;
+        if (!canvas || !image) return;
+        boundaryRef.current && canvas.remove(boundaryRef.current);
+
+        const imageLeft = image.left - image.getScaledWidth() / 2;
+        const imageTop = image.top - image.getScaledHeight() / 2;
+        const sourceWidth = image.width || 600;
+        const sourceHeight = image.height || 600;
+        const normalized = {
+            type: sourceSelection?.type === 'circle' ? 'circle' : 'rect',
+            left: Number.isFinite(Number(sourceSelection?.left)) ? Number(sourceSelection.left) : sourceWidth * 0.25,
+            top: Number.isFinite(Number(sourceSelection?.top)) ? Number(sourceSelection.top) : sourceHeight * 0.15,
+            width: Number(sourceSelection?.width) > 0 ? Number(sourceSelection.width) : sourceWidth * 0.5,
+            height: Number(sourceSelection?.height) > 0 ? Number(sourceSelection.height) : sourceHeight * 0.7,
+            angle: 0,
+        };
+        selectionRef.current = normalized;
+
+        const boundary = new fabric.Rect({
+            left: imageLeft + normalized.left * image.scaleX,
+            top: imageTop + normalized.top * image.scaleY,
+            width: normalized.width * image.scaleX,
+            height: normalized.height * image.scaleY,
+            fill: 'rgba(37,99,235,.08)',
+            stroke: '#2563eb',
+            strokeWidth: 3,
+            strokeDashArray: [10, 7],
+            transparentCorners: false,
+            cornerColor: '#ffffff',
+            cornerStrokeColor: '#2563eb',
+            cornerSize: 13,
+            lockRotation: true,
+            hasRotatingPoint: false,
+        });
+        boundary.setControlsVisibility({ mtr: false });
+        boundary.on('moving', () => {
+            keepBoundaryOnImage();
+            syncSelection();
+        });
+        boundary.on('scaling', () => {
+            keepBoundaryOnImage();
+            syncSelection();
+        });
+        boundary.on('modified', () => {
+            keepBoundaryOnImage();
+            syncSelection();
+        });
+        boundaryRef.current = boundary;
+        canvas.add(boundary);
+        canvas.setActiveObject(boundary);
+        keepBoundaryOnImage();
+        syncSelection();
+        canvas.requestRenderAll();
+    }, [keepBoundaryOnImage, syncSelection]);
+
+    useEffect(() => {
+        if (!fabric || !canvasElementRef.current) return undefined;
+        const canvas = new fabric.Canvas(canvasElementRef.current, {
+            width: DESIGN_CANVAS_WIDTH,
+            height: DESIGN_CANVAS_HEIGHT,
+            selection: false,
+            preserveObjectStacking: true,
+        });
+        canvasRef.current = canvas;
+
+        const stage = stageRef.current;
+        let frameId = 0;
+        const resize = () => {
+            window.cancelAnimationFrame(frameId);
+            frameId = window.requestAnimationFrame(() => {
+                if (!stage) return;
+                const width = Math.min(DESIGN_CANVAS_WIDTH, Math.max(stage.clientWidth, 1));
+                const height = Math.round(width * DESIGN_CANVAS_HEIGHT / DESIGN_CANVAS_WIDTH);
+                canvas.setDimensions({ width: `${width}px`, height: `${height}px` }, { cssOnly: true });
+                canvas.calcOffset();
+                canvas.requestRenderAll();
+            });
+        };
+        const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
+        observer?.observe(stage);
+        window.addEventListener('resize', resize);
+        resize();
+
+        return () => {
+            imageLoadRef.current += 1;
+            observer?.disconnect();
+            window.removeEventListener('resize', resize);
+            window.cancelAnimationFrame(frameId);
+            canvas.dispose();
+            canvasRef.current = null;
+        };
+    }, []);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !imageUrl) return;
+        const loadId = ++imageLoadRef.current;
+        setError('');
+        fabric.Image.fromURL(imageUrl, (image) => {
+            if (loadId !== imageLoadRef.current || !image?.width || !image?.height) return;
+            const scale = Math.min(canvas.getWidth() / image.width, canvas.getHeight() / image.height);
+            image.set({
+                originX: 'center',
+                originY: 'center',
+                left: canvas.getWidth() / 2,
+                top: canvas.getHeight() / 2,
+                scaleX: scale,
+                scaleY: scale,
+                selectable: false,
+                evented: false,
+            });
+            imageRef.current = image;
+            canvas.setBackgroundImage(image, () => {
+                placeBoundary(selectionRef.current);
+                canvas.requestRenderAll();
+            });
+        }, { crossOrigin: 'anonymous' });
+    }, [imageUrl, placeBoundary]);
+
+    const chooseImage = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) {
+            event.target.value = '';
+            setError('Choose a PNG, JPG, JPEG, or WEBP image.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            setFileName(file.name);
+            setImageUrl(reader.result);
+        };
+        reader.onerror = () => setError('The selected image could not be previewed.');
+        reader.readAsDataURL(file);
+    };
+
+    const centerBoundary = () => {
+        const image = imageRef.current;
+        const current = selectionRef.current;
+        if (!image || !current) return;
+        placeBoundary({
+            ...current,
+            left: Math.max(((image.width || 600) - current.width) / 2, 0),
+            top: Math.max(((image.height || 600) - current.height) / 2, 0),
+        });
+    };
+
+    return (
+        <div className="ink-print-editor-card">
+            <div className="ink-print-editor-heading">
+                <div><strong>{label}</strong><small>Customer drawing background</small></div>
+                <span>{Math.round(selection.width || 0)} × {Math.round(selection.height || 0)} px</span>
+            </div>
+            <div className="ink-print-editor-upload">
+                <label htmlFor={inputId}>Replace {label.toLowerCase()} image</label>
+                <input id={inputId} type="file" name={`print_area_image[${side}]`} accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={chooseImage} />
+                <small>{fileName || 'Transparent PNG recommended · maximum 10 MB'}</small>
+                {error && <p>{error}</p>}
+            </div>
+            <input ref={hiddenInputRef} type="hidden" name={`print_area_selected[${side}]`} defaultValue={JSON.stringify(initialSelection)} />
+            <div ref={stageRef} className="ink-print-editor-stage">
+                <canvas ref={canvasElementRef} width={DESIGN_CANVAS_WIDTH} height={DESIGN_CANVAS_HEIGHT} />
+            </div>
+            <div className="ink-print-editor-footer">
+                <span>Drag the blue area · Pull a corner to resize</span>
+                <div>
+                    <button type="button" onClick={centerBoundary}>Center area</button>
+                    <button type="button" onClick={() => placeBoundary(initialSelection)}>Reset area</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function textureFrom(url) {
     return useTexture(url || BLANK_TEXTURE);
 }
@@ -1346,4 +1589,16 @@ document.querySelectorAll('[data-model-settings-preview]').forEach((element) => 
     const details = element.closest('details');
     if (!details || details.open) mountPreview();
     else details.addEventListener('toggle', () => details.open && mountPreview(), { once: true });
+});
+
+document.querySelectorAll('[data-print-area-editor]').forEach((element) => {
+    let mounted = false;
+    const mountEditor = () => {
+        if (mounted) return;
+        mounted = true;
+        createRoot(element).render(<PrintAreaEditor element={element} />);
+    };
+    const details = element.closest('details');
+    if (!details || details.open) mountEditor();
+    else details.addEventListener('toggle', () => details.open && mountEditor(), { once: true });
 });

@@ -116,6 +116,11 @@ class ProductValidationService {
             'designer_settings.back_y' => 'nullable|numeric',
             'designer_settings.back_width' => 'nullable|numeric',
             'designer_settings.back_height' => 'nullable|numeric',
+            'print_area_image' => 'nullable|array',
+            'print_area_image.*' => ['nullable', 'image', new FileTypeValidate(['jpg', 'jpeg', 'png', 'webp']), 'max:10240'],
+            'print_area_selected' => 'nullable|array',
+            'print_area_selected.front' => 'nullable|json',
+            'print_area_selected.back' => 'nullable|json',
             'images'         => 'nullable|array|max:20',
             'published'      => 'nullable|in:1,0',
         ];
