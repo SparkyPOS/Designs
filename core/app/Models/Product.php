@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model {
     use GlobalStatus;
 
+    public const DESIGNER_FORM_DTG = 'dtg';
+    public const DESIGNER_FORM_ENGRAVE = 'engrave';
+
     protected $casts = [
         'sale_price'         => 'double',
         'regular_price'      => 'double',
@@ -138,6 +141,16 @@ class Product extends Model {
     public function designerPreviewUrl() {
         $filename = $this->designer_preview ?: '2.webp';
         return asset('assets/images/designer/' . $filename);
+    }
+
+    public function resolvedDesignerForm(): string {
+        return in_array($this->designer_form, [self::DESIGNER_FORM_DTG, self::DESIGNER_FORM_ENGRAVE], true)
+            ? $this->designer_form
+            : self::DESIGNER_FORM_DTG;
+    }
+
+    public function usesEngraveDesigner(): bool {
+        return $this->resolvedDesignerForm() === self::DESIGNER_FORM_ENGRAVE;
     }
 
     public static function designerSettingsDefaults(): array {

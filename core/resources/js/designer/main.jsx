@@ -19,6 +19,15 @@ const SETTINGS_PREVIEW_TEXTURE = `data:image/svg+xml;charset=utf-8,${encodeURICo
         </g>
     </svg>
 `)}`;
+const SETTINGS_PREVIEW_ENGRAVE_TEXTURE = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+        <g transform="translate(600 0) scale(-1 1)" fill="#000000">
+            <rect x="35" y="35" width="530" height="530" rx="24" fill="none" stroke="#000000" stroke-width="18" stroke-dasharray="28 18"/>
+            <path d="M300 130L337 232L445 235L359 301L389 405L300 345L211 405L241 301L155 235L263 232Z"/>
+            <text x="300" y="500" text-anchor="middle" font-family="Arial,sans-serif" font-size="58" font-weight="700">ENGRAVE</text>
+        </g>
+    </svg>
+`)}`;
 const SERIALIZE_PROPS = ['shapeName', 'originalSrc', 'customInfo', 'designerId'];
 
 function ensureDesignerId(object) {
@@ -120,7 +129,35 @@ function makeShape(type, color) {
     return pathShape(type, color);
 }
 
-function CanvasStage({ area, active, register, onTexture, onState }) {
+function applyEngraveStyle(object) {
+    if (!object || object.__designerHelper) return object;
+    if (object.type === 'image') {
+        const Grayscale = fabric?.Image?.filters?.Grayscale;
+        if (Grayscale) {
+            object.filters = [new Grayscale({ mode: 'luminosity' })];
+            object.applyFilters();
+        }
+    } else {
+        if (object.fill !== null && object.fill !== undefined && object.fill !== 'transparent') object.set('fill', '#000000');
+        if (object.stroke !== null && object.stroke !== undefined && object.stroke !== 'transparent') object.set('stroke', '#000000');
+        if (object.shadow) object.set('shadow', null);
+    }
+    object.getObjects?.().forEach(applyEngraveStyle);
+    return object;
+}
+
+function applyEngraveCanvas(canvas) {
+    canvas?.getObjects().filter((object) => !object.__designerHelper).forEach(applyEngraveStyle);
+}
+
+function applyGarmentColor(image, color) {
+    if (!image) return;
+    const BlendColor = fabric?.Image?.filters?.BlendColor;
+    image.filters = BlendColor && color ? [new BlendColor({ color, mode: 'multiply', alpha: 1 })] : [];
+    image.applyFilters?.();
+}
+
+function CanvasStage({ area, active, register, onTexture, onState, engrave, garmentColor }) {
     const elementRef = useRef(null);
     const stageRef = useRef(null);
     const canvasRef = useRef(null);
@@ -130,6 +167,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
     const historyIndexRef = useRef(-1);
     const restoringRef = useRef(false);
     const textureTimerRef = useRef(null);
+    const garmentColorRef = useRef(garmentColor);
 
     const syncState = useCallback(() => {
         const canvas = canvasRef.current;
@@ -149,6 +187,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
     const serialize = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return JSON.stringify({ version: fabric.version, objects: [] });
+        if (engrave) applyEngraveCanvas(canvas);
         const json = canvas.toJSON(SERIALIZE_PROPS);
         json.objects = canvas.getObjects()
             .filter((object) => !object.__designerHelper)
@@ -162,7 +201,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
         const input = document.querySelector(`[data-design-value="${area.id}"]`);
         if (input) input.value = value;
         return value;
-    }, [area.id]);
+    }, [area.id, engrave]);
 
     const updateTexture = useCallback(() => {
         const canvas = canvasRef.current;
@@ -171,6 +210,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
         textureTimerRef.current = window.setTimeout(() => {
             const editable = getArea(canvas, selectedAreaRef.current);
             if (!editable) return;
+            if (engrave) applyEngraveCanvas(canvas);
             const border = borderRef.current;
             const previousOpacity = canvas.backgroundImage?.opacity ?? 1;
             if (canvas.backgroundImage) canvas.backgroundImage.set('opacity', 0);
@@ -205,7 +245,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
             };
             textureImage.src = texture;
         }, 100);
-    }, [area.id, onTexture]);
+    }, [area.id, engrave, onTexture]);
 
     const captureHistory = useCallback(() => {
         if (restoringRef.current) return;
@@ -230,6 +270,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
         fabric.util.enlivenObjects(parsed.objects || [], (objects) => {
             objects.forEach((object) => {
                 object.__designerHelper = false;
+                if (engrave) applyEngraveStyle(object);
                 ensureDesignerId(object);
                 canvas.add(object);
                 clampObject(canvas, object, selectedAreaRef.current);
@@ -242,7 +283,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
             updateTexture();
             if (capture) captureHistory();
         });
-    }, [captureHistory, serialize, syncState, updateTexture]);
+    }, [captureHistory, engrave, serialize, syncState, updateTexture]);
 
     useEffect(() => {
         if (!fabric || !elementRef.current) return undefined;
@@ -260,6 +301,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
         canvas.on('object:modified', changed);
         canvas.on('object:removed', changed);
         canvas.on('path:created', (event) => {
+            if (engrave) applyEngraveStyle(event.path);
             clampObject(canvas, event.path, selectedAreaRef.current);
             changed();
         });
@@ -289,6 +331,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
                 selectable: false,
                 evented: false,
             });
+            applyGarmentColor(image, garmentColorRef.current);
             canvas.setBackgroundImage(image, () => {
                 const editable = getArea(canvas, selectedAreaRef.current);
                 if (editable) {
@@ -310,6 +353,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
         }, { crossOrigin: 'anonymous' });
 
         const addObject = (object) => {
+            if (engrave) applyEngraveStyle(object);
             ensureDesignerId(object);
             centerObject(canvas, object, getArea(canvas, selectedAreaRef.current));
             canvas.add(object);
@@ -320,16 +364,17 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
         const api = {
             serialize,
             hasDesign: () => canvas.getObjects().some((object) => !object.__designerHelper),
-            addText: () => addObject(new fabric.IText('Your text', { fontFamily: 'Arial', fontSize: 34, fill: '#111827', shapeName: 'text' })),
-            addShape: (type, color) => addObject(makeShape(type, color)),
+            addText: () => addObject(new fabric.IText('Your text', { fontFamily: 'Arial', fontSize: 34, fill: engrave ? '#000000' : '#111827', shapeName: 'text' })),
+            addShape: (type, color) => addObject(makeShape(type, engrave ? '#000000' : color)),
             addImage: (dataUrl) => fabric.Image.fromURL(dataUrl, (image) => {
                 image.set({ originalSrc: dataUrl, shapeName: 'image' });
+                if (engrave) applyEngraveStyle(image);
                 addObject(image);
             }),
             updateText: (property, value) => {
                 const object = canvas.getActiveObject();
                 if (!object || !['i-text', 'text', 'textbox'].includes(object.type)) return notify('error', 'Select a text object first.');
-                object.set(property, value);
+                object.set(property, engrave && property === 'fill' ? '#000000' : value);
                 object.setCoords();
                 clampObject(canvas, object, selectedAreaRef.current);
                 canvas.requestRenderAll();
@@ -352,7 +397,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
             },
             setDrawing: (enabled, color, width) => {
                 canvas.isDrawingMode = enabled;
-                canvas.freeDrawingBrush.color = color;
+                canvas.freeDrawingBrush.color = engrave ? '#000000' : color;
                 canvas.freeDrawingBrush.width = Number(width);
                 canvas.selection = !enabled;
             },
@@ -407,6 +452,7 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
                 if (!object || object.__designerHelper) return notify('error', 'Select an object to duplicate.');
                 object.clone((clone) => {
                     clone.set({ left: object.left + 14, top: object.top + 14, evented: true });
+                    if (engrave) applyEngraveStyle(clone);
                     clone.designerId = null;
                     ensureDesignerId(clone);
                     clampObject(canvas, clone, selectedAreaRef.current);
@@ -442,6 +488,11 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
                 captureHistory();
             },
             isEditingText: () => Boolean(canvas.getActiveObject()?.isEditing),
+            enforceEngrave: () => {
+                applyEngraveCanvas(canvas);
+                canvas.requestRenderAll();
+                captureHistory();
+            },
         };
         register(area.id, api);
 
@@ -451,6 +502,14 @@ function CanvasStage({ area, active, register, onTexture, onState }) {
             canvas.dispose();
         };
     }, []);
+
+    useEffect(() => {
+        garmentColorRef.current = garmentColor;
+        const canvas = canvasRef.current;
+        if (!canvas?.backgroundImage) return;
+        applyGarmentColor(canvas.backgroundImage, garmentColor);
+        canvas.requestRenderAll();
+    }, [garmentColor]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -522,6 +581,7 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
         const value = Number(settings?.[key]);
         return Number.isFinite(value) ? value : fallback;
     };
+    const movement = (key) => setting(key, 0) * 0.1;
     const modelRotation = [
         THREE.MathUtils.degToRad(setting('rotation_x', 0)),
         THREE.MathUtils.degToRad(setting('rotation_y', 0)) + (activeSide === 'back' ? Math.PI : 0),
@@ -563,8 +623,12 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
         const clone = scene.clone(true);
         clone.traverse((child) => {
             if (!child.isMesh) return;
-            child.material = child.material.clone();
-            if (/shirt|cloth|fabric|background/i.test(`${child.name} ${child.material.name}`)) child.material.color = new THREE.Color(color || '#ffffff');
+            const materialsToColor = (Array.isArray(child.material) ? child.material : [child.material]).map((material) => {
+                const clonedMaterial = material.clone();
+                if (clonedMaterial.color) clonedMaterial.color = new THREE.Color(color || '#ffffff');
+                return clonedMaterial;
+            });
+            child.material = Array.isArray(child.material) ? materialsToColor : materialsToColor[0];
         });
 
         // Uploaded GLBs can use very different authoring units and origins.
@@ -618,6 +682,10 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
             decalGeometry,
             frontPosition: [decalCenter.x, decalCenter.y, decalBounds.max.z + 0.01],
             backPosition: [decalCenter.x, decalCenter.y, decalBounds.min.z - 0.02],
+            bounds: {
+                min: [decalBounds.min.x, decalBounds.min.y],
+                max: [decalBounds.max.x, decalBounds.max.y],
+            },
             decalScale,
             backDecalScale: [decalScale[0] * 0.82, decalScale[1] * 0.82, decalScale[2]],
         };
@@ -632,16 +700,16 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
     }, [exactModel, genericFront, genericBack]);
 
     if (!exactModel) {
-        const frontPosition = [
-            genericModel.frontPosition[0] + setting('front_x', 0),
-            genericModel.frontPosition[1] + setting('front_y', 0),
-            genericModel.frontPosition[2],
-        ];
-        const backPosition = [
-            genericModel.backPosition[0] - setting('back_x', 0),
-            genericModel.backPosition[1] + setting('back_y', 0),
-            genericModel.backPosition[2],
-        ];
+        if (!genericModel?.decalGeometry) {
+            return <group dispose={null} rotation={modelRotation} position={modelPosition} scale={modelScaleVector}><primitive object={genericModel.scene} /></group>;
+        }
+        const keepVisible = (base, offset, min, max, artworkSize) => {
+            const availableHalf = Math.max((max - min) / 2, 0);
+            const artworkHalf = Math.min(Math.abs(artworkSize) / 2, availableHalf);
+            const lower = min + artworkHalf;
+            const upper = max - artworkHalf;
+            return THREE.MathUtils.clamp(base + offset, lower, upper);
+        };
         const frontScale = [
             genericModel.decalScale[0] * setting('front_width', 1),
             genericModel.decalScale[1] * setting('front_height', 1),
@@ -651,6 +719,16 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
             genericModel.backDecalScale[0] * setting('back_width', 1),
             genericModel.backDecalScale[1] * setting('back_height', 1),
             1,
+        ];
+        const frontPosition = [
+            keepVisible(genericModel.frontPosition[0], movement('front_x'), genericModel.bounds.min[0], genericModel.bounds.max[0], frontScale[0]),
+            keepVisible(genericModel.frontPosition[1], movement('front_y'), genericModel.bounds.min[1], genericModel.bounds.max[1], frontScale[1]),
+            genericModel.frontPosition[2],
+        ];
+        const backPosition = [
+            keepVisible(genericModel.backPosition[0], -movement('back_x'), genericModel.bounds.min[0], genericModel.bounds.max[0], backScale[0]),
+            keepVisible(genericModel.backPosition[1], movement('back_y'), genericModel.bounds.min[1], genericModel.bounds.max[1], backScale[1]),
+            genericModel.backPosition[2],
         ];
         return (
             <group dispose={null} rotation={modelRotation} position={modelPosition} scale={modelScaleVector}>
@@ -684,23 +762,23 @@ function ReferenceShirt({ modelUrl, color, frontTexture, backTexture, onView, ac
                     <group rotation={[Math.PI / 2, 0, 0]}>
                         <mesh scale={7.5} position={[0, 0, 2]} geometry={nodes['T-Shirt_1'].geometry} material={materials.Shirt} castShadow receiveShadow />
                         <mesh scale={7.5} position={[0, 0, 2]} geometry={nodes['T-Shirt_2'].geometry} onClick={() => onView('front')}>
-                            <meshBasicMaterial transparent opacity={0} />
+                            <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
                             <Decal
-                                position={[setting('front_x', 0), 0.2 + setting('front_y', 0), -0.31]}
+                                position={[THREE.MathUtils.clamp(movement('front_x'), -0.7, 0.7), 0.2, -0.31 - THREE.MathUtils.clamp(movement('front_y'), -0.7, 0.7)]}
                                 rotation={[-Math.PI / 2 - 0.05, 0, Math.PI]}
                                 scale={[0.52 * setting('front_width', 1), 0.7 * setting('front_height', 1), 0.5]}
                             >
-                                <meshStandardMaterial map={front} toneMapped={false} transparent polygonOffset polygonOffsetFactor={-1} />
+                                <meshStandardMaterial map={front} toneMapped={false} transparent depthTest polygonOffset polygonOffsetFactor={-4} />
                             </Decal>
                         </mesh>
                         <mesh scale={7.5} position={[0, 0, 2]} geometry={nodes['T-Shirt_3'].geometry} onClick={() => onView('back')}>
-                            <meshBasicMaterial transparent opacity={0} />
+                            <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
                             <Decal
-                                position={[-setting('back_x', 0), -0.2 + setting('back_y', 0), -0.27]}
+                                position={[-THREE.MathUtils.clamp(movement('back_x'), -0.7, 0.7), -0.2, -0.27 - THREE.MathUtils.clamp(movement('back_y'), -0.7, 0.7)]}
                                 rotation={[Math.PI / 2 - 0.2, 0, Math.PI]}
                                 scale={[0.52 * setting('back_width', 1), 0.7 * setting('back_height', 1), 0.5]}
                             >
-                                <meshStandardMaterial map={genericBack} toneMapped={false} transparent polygonOffset polygonOffsetFactor={-1} />
+                                <meshStandardMaterial map={genericBack} toneMapped={false} transparent depthTest polygonOffset polygonOffsetFactor={-4} />
                             </Decal>
                         </mesh>
                         <mesh scale={7.5} position={[0, 0, 2]} geometry={nodes['T-Shirt_4'].geometry} material={materials['left hand']} castShadow receiveShadow />
@@ -729,7 +807,7 @@ class ViewerBoundary extends Component {
     }
 }
 
-function ModelViewer({ config, textures, areas, activeId, setActiveId }) {
+function ModelViewer({ config, textures, areas, activeId, setActiveId, garmentColor }) {
     const frontArea = areas.find((area) => !/back/i.test(area.name)) || areas[0];
     const backArea = areas.find((area) => /back/i.test(area.name)) || areas[1];
     const activeSide = backArea && activeId === backArea.id ? 'back' : 'front';
@@ -751,7 +829,7 @@ function ModelViewer({ config, textures, areas, activeId, setActiveId }) {
                         <ambientLight intensity={0.65} />
                         <directionalLight position={[4, 6, 5]} intensity={1.2} castShadow />
                         <Suspense fallback={<Html center><div className="ink-loader">Loading 3D model…</div></Html>}>
-                            <ReferenceShirt modelUrl={config.modelUrl} color={config.color} frontTexture={textures[frontArea?.id]} backTexture={textures[backArea?.id]} onView={switchSide} activeSide={activeSide} settings={config.modelSettings} />
+                            <ReferenceShirt modelUrl={config.modelUrl} color={garmentColor || config.color} frontTexture={textures[frontArea?.id]} backTexture={textures[backArea?.id]} onView={switchSide} activeSide={activeSide} settings={config.modelSettings} />
                             <Environment preset="studio" />
                         </Suspense>
                         <OrbitControls enablePan={false} minDistance={5} maxDistance={12} minPolarAngle={Math.PI / 3} maxPolarAngle={Math.PI / 1.65} />
@@ -790,7 +868,9 @@ function ModelSettingsPreview({ element }) {
     const form = element.closest('form');
     const settingsRoot = element.closest('[data-designer-settings]');
     const initialSettings = useRef(readSettingsFromForm(form));
+    const initialDesignForm = useRef(settingsRoot?.dataset.initialDesignerForm || 'dtg');
     const [settings, setSettings] = useState(initialSettings.current);
+    const [designForm, setDesignForm] = useState(initialDesignForm.current);
     const [modelUrl, setModelUrl] = useState(element.dataset.modelUrl);
     const [activeSide, setActiveSide] = useState('front');
     const [localFileName, setLocalFileName] = useState('');
@@ -805,7 +885,7 @@ function ModelSettingsPreview({ element }) {
             return {};
         }
     }, [settingsRoot]);
-    const isDirty = localFileName !== '' || !sameSettings(settings, initialSettings.current);
+    const isDirty = localFileName !== '' || designForm !== initialDesignForm.current || !sameSettings(settings, initialSettings.current);
 
     const updateFormSettings = useCallback((nextSettings) => {
         Object.entries(nextSettings).forEach(([key, value]) => {
@@ -837,6 +917,16 @@ function ModelSettingsPreview({ element }) {
             setLocalFileName(file?.name || '');
         };
         modelInput?.addEventListener('change', loadSelectedModel);
+        const designFormSelect = settingsRoot?.querySelector('[data-designer-form-select]');
+        const syncDesignForm = () => {
+            const nextForm = designFormSelect?.value || 'dtg';
+            setDesignForm(nextForm);
+            const help = settingsRoot?.querySelector('[data-designer-form-help]');
+            if (help) help.textContent = nextForm === 'engrave'
+                ? 'Engrave makes all text, shapes, and drawing black and converts uploaded artwork to monochrome.'
+                : 'DTG keeps the full-color design tools currently available to customers.';
+        };
+        designFormSelect?.addEventListener('change', syncDesignForm);
         const handleSubmit = () => { submittingRef.current = true; };
         form?.addEventListener('submit', handleSubmit);
 
@@ -846,6 +936,7 @@ function ModelSettingsPreview({ element }) {
                 input.removeEventListener('change', sync);
             });
             modelInput?.removeEventListener('change', loadSelectedModel);
+            designFormSelect?.removeEventListener('change', syncDesignForm);
             form?.removeEventListener('submit', handleSubmit);
             if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
         };
@@ -888,11 +979,17 @@ function ModelSettingsPreview({ element }) {
             modelInput.value = '';
             modelInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
+        const designFormSelect = settingsRoot?.querySelector('[data-designer-form-select]');
+        if (designFormSelect) {
+            designFormSelect.value = initialDesignForm.current;
+            designFormSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     };
 
     const frontReady = Number(settings.front_width) > 0 && Number(settings.front_height) > 0;
     const backReady = Number(settings.back_width) > 0 && Number(settings.back_height) > 0;
     const modelLabel = localFileName || (element.dataset.hasCustomModel === '1' ? 'Custom model' : 'Reference model');
+    const previewTexture = designForm === 'engrave' ? SETTINGS_PREVIEW_ENGRAVE_TEXTURE : SETTINGS_PREVIEW_TEXTURE;
 
     const fallback = <img className="ink-model-fallback" src={element.dataset.previewUrl} alt="3D model preview fallback" />;
     return (
@@ -905,6 +1002,7 @@ function ModelSettingsPreview({ element }) {
                 <span className={modelLoaded ? 'ready' : ''}><i />{modelLoaded ? 'Model loaded' : 'Loading model'}</span>
                 <span className={frontReady ? 'ready' : ''}><i />Front configured</span>
                 <span className={backReady ? 'ready' : ''}><i />Back configured</span>
+                <span className="ready"><i />{designForm === 'engrave' ? 'Engrave · monochrome' : 'DTG · full color'}</span>
                 <span className={isDirty ? 'changed' : 'ready'}><i />{isDirty ? 'Unsaved changes' : 'Settings saved'}</span>
             </div>
             <div className="ink-settings-preview-canvas">
@@ -917,8 +1015,8 @@ function ModelSettingsPreview({ element }) {
                                 key={modelUrl}
                                 modelUrl={modelUrl}
                                 color="#ffffff"
-                                frontTexture={SETTINGS_PREVIEW_TEXTURE}
-                                backTexture={SETTINGS_PREVIEW_TEXTURE}
+                                frontTexture={previewTexture}
+                                backTexture={previewTexture}
                                 activeSide={activeSide}
                                 settings={settings}
                                 onView={setActiveSide}
@@ -954,7 +1052,7 @@ const SHAPES = [
     ['diamond', '◆'], ['pentagon', '⬟'], ['hexagon', '⬢'], ['cloud', '☁'], ['arrow', '➜'], ['bubble', '▰'], ['moon', '◐'],
 ];
 
-function Tools({ api, tool, setTool, editorState }) {
+function Tools({ api, tool, setTool, editorState, engrave }) {
     const [textColor, setTextColor] = useState('#111827');
     const [shapeColor, setShapeColor] = useState('#ef4444');
     const [drawColor, setDrawColor] = useState('#111827');
@@ -962,18 +1060,25 @@ function Tools({ api, tool, setTool, editorState }) {
 
     useEffect(() => {
         if (!api) return undefined;
-        api.setDrawing(tool === 'draw', drawColor, brushWidth);
-        return () => api.setDrawing(false, drawColor, brushWidth);
-    }, [api, tool]);
+        if (engrave) {
+            setTextColor('#000000');
+            setShapeColor('#000000');
+            setDrawColor('#000000');
+            api.enforceEngrave();
+        }
+        api.setDrawing(tool === 'draw', engrave ? '#000000' : drawColor, brushWidth);
+        return () => api.setDrawing(false, engrave ? '#000000' : drawColor, brushWidth);
+    }, [api, engrave, tool]);
 
     const choose = (next) => {
         if (tool === 'draw' && next !== 'draw') api?.setDrawing(false, drawColor, brushWidth);
         setTool(next);
-        if (next === 'draw') api?.setDrawing(true, drawColor, brushWidth);
+        if (next === 'draw') api?.setDrawing(true, engrave ? '#000000' : drawColor, brushWidth);
     };
 
     return (
         <aside className="ink-tools">
+            {engrave && <div className="ink-engrave-notice"><i />Engrave mode · Black and monochrome artwork only</div>}
             <div className="ink-tool-tabs">
                 <button type="button" className={tool === 'text' ? 'active' : ''} onClick={() => choose('text')}><span>T</span>Text</button>
                 <button type="button" className={tool === 'image' ? 'active' : ''} onClick={() => choose('image')}><span>▧</span>Image</button>
@@ -990,7 +1095,9 @@ function Tools({ api, tool, setTool, editorState }) {
                         <button type="button" onClick={() => api?.toggleText('fontStyle', 'italic', 'normal')}><i>I</i></button>
                         <button type="button" onClick={() => api?.toggleText('underline', true, false)}><u>U</u></button>
                         <button type="button" title="Curve text" onClick={() => api?.curveText()}>⌒</button>
-                        <input aria-label="Text color" type="color" value={textColor} onChange={(e) => { setTextColor(e.target.value); api?.updateText('fill', e.target.value); }} />
+                        {engrave
+                            ? <span className="ink-fixed-black" title="Engrave color is fixed to black"><i />Black only</span>
+                            : <input aria-label="Text color" type="color" value={textColor} onChange={(e) => { setTextColor(e.target.value); api?.updateText('fill', e.target.value); }} />}
                     </div>
                 </>}
                 {tool === 'image' && <>
@@ -1006,15 +1113,19 @@ function Tools({ api, tool, setTool, editorState }) {
                         reader.readAsDataURL(file);
                         event.target.value = '';
                     }} /></label>
-                    <p className="ink-hint">High-resolution transparent PNG artwork gives the best print result.</p>
+                    <p className="ink-hint">{engrave ? 'Uploaded artwork is automatically converted to monochrome.' : 'High-resolution transparent PNG artwork gives the best print result.'}</p>
                 </>}
                 {tool === 'shape' && <>
-                    <label>Shape color<input type="color" value={shapeColor} onChange={(e) => setShapeColor(e.target.value)} /></label>
-                    <div className="ink-shape-grid">{SHAPES.map(([name, glyph]) => <button title={name} type="button" key={name} onClick={() => api?.addShape(name, shapeColor)}>{glyph}</button>)}</div>
+                    {engrave
+                        ? <label>Shape color<span className="ink-fixed-black"><i />Black only</span></label>
+                        : <label>Shape color<input type="color" value={shapeColor} onChange={(e) => setShapeColor(e.target.value)} /></label>}
+                    <div className="ink-shape-grid">{SHAPES.map(([name, glyph]) => <button title={name} type="button" key={name} onClick={() => api?.addShape(name, engrave ? '#000000' : shapeColor)}>{glyph}</button>)}</div>
                 </>}
                 {tool === 'draw' && <>
                     <div className="ink-draw-status"><i /> Free drawing is active</div>
-                    <label>Brush color<input type="color" value={drawColor} onChange={(e) => { setDrawColor(e.target.value); api?.setDrawing(true, e.target.value, brushWidth); }} /></label>
+                    {engrave
+                        ? <label>Brush color<span className="ink-fixed-black"><i />Black only</span></label>
+                        : <label>Brush color<input type="color" value={drawColor} onChange={(e) => { setDrawColor(e.target.value); api?.setDrawing(true, e.target.value, brushWidth); }} /></label>}
                     <label>Brush width<input type="range" min="1" max="30" value={brushWidth} onChange={(e) => { setBrushWidth(e.target.value); api?.setDrawing(true, drawColor, e.target.value); }} /><span>{brushWidth}px</span></label>
                     <button type="button" className="ink-secondary-tool" onClick={() => choose('text')}>Finish drawing</button>
                 </>}
@@ -1045,8 +1156,11 @@ function Tools({ api, tool, setTool, editorState }) {
 
 function DesignerApp({ config }) {
     const areas = config.printAreas;
+    const engrave = config.designForm === 'engrave';
+    const initialGarmentColor = /^#[0-9a-f]{6}$/i.test(config.color || '') ? config.color : '#ffffff';
     const [activeId, setActiveId] = useState(areas[0]?.id);
     const [tool, setTool] = useState('text');
+    const [garmentColor, setGarmentColor] = useState(initialGarmentColor);
     const [textures, setTextures] = useState({});
     const [editorStates, setEditorStates] = useState({});
     const [, setReadyVersion] = useState(0);
@@ -1143,24 +1257,24 @@ function DesignerApp({ config }) {
     if (!areas.length) return <div className="alert alert-warning">No print area is configured for this product.</div>;
 
     return (
-        <div className="ink-designer" ref={rootRef}>
+        <div className={`ink-designer ${engrave ? 'is-engrave' : ''}`} ref={rootRef}>
             <header className="ink-designer-header">
                 <a href={config.backUrl} className="ink-back" aria-label="Back to product">←</a>
-                <div><span>Product designer</span><h1>{config.productName}</h1></div>
+                <div><span>{engrave ? 'Engrave designer' : 'Product designer'}</span><h1>{config.productName}</h1></div>
                 <div className="ink-header-actions">
                     <button type="button" onClick={() => window.jQuery?.('#instructionModal').modal('show')}>? Help</button>
                     <button type="button" onClick={() => rootRef.current?.requestFullscreen?.()}>⛶ Full screen</button>
                 </div>
             </header>
             <main className="ink-workspace">
-                <ModelViewer config={config} textures={textures} areas={areas} activeId={activeId} setActiveId={setActiveId} />
+                <ModelViewer config={config} textures={textures} areas={areas} activeId={activeId} setActiveId={setActiveId} garmentColor={garmentColor} />
                 <section className="ink-editor-panel">
                     <div className="ink-panel-heading">
                         <div><span className="ink-step">02</span><h2>Create your design</h2></div>
-                        <span className="ink-side-label">Editing: {activeArea?.name} · {activeEditorState.layers.length} objects</span>
+                        <span className={`ink-side-label ${engrave ? 'ink-engrave-badge' : ''}`}>{engrave ? 'Engrave · Black only' : `Editing: ${activeArea?.name} · ${activeEditorState.layers.length} objects`}</span>
                     </div>
                     <div className="ink-editor-grid">
-                        <Tools api={activeApi} tool={tool} setTool={setTool} editorState={activeEditorState} />
+                        <Tools api={activeApi} tool={tool} setTool={setTool} editorState={activeEditorState} engrave={engrave} />
                         <div className="ink-canvas-column">
                             <div className="ink-canvas-actions">
                                 <div>
@@ -1173,6 +1287,22 @@ function DesignerApp({ config }) {
                                     <button type="button" title="Reset zoom" aria-label={`Reset zoom, currently ${activeEditorState.zoom}%`} onClick={() => activeApi?.resetZoom()}>{activeEditorState.zoom}%</button>
                                     <button type="button" title="Zoom in" aria-label="Zoom in" onClick={() => activeApi?.zoom(1.15)}>＋</button>
                                 </div>
+                                <div className="ink-garment-color" title="Change the garment color used by the drawing and 3D previews">
+                                    <span>Garment</span>
+                                    {['#ffffff', '#111827', '#2563eb', '#dc2626'].map((color) => (
+                                        <button
+                                            type="button"
+                                            key={color}
+                                            className={garmentColor.toLowerCase() === color ? 'active' : ''}
+                                            style={{ '--swatch-color': color }}
+                                            aria-label={`Preview garment in ${color}`}
+                                            onClick={() => setGarmentColor(color)}
+                                        />
+                                    ))}
+                                    <label aria-label="Choose a custom garment preview color">
+                                        <input type="color" value={garmentColor} onChange={(event) => setGarmentColor(event.target.value)} />
+                                    </label>
+                                </div>
                                 <div>
                                     <button type="button" title="Duplicate selected" aria-label="Duplicate selected object" onClick={() => activeApi?.duplicate()}>⧉</button>
                                     <button type="button" title="Center selected" aria-label="Center selected object" onClick={() => activeApi?.centerSelected()}>◎</button>
@@ -1181,7 +1311,7 @@ function DesignerApp({ config }) {
                                 </div>
                             </div>
                             <div className="ink-canvas-wrap">
-                                {areas.map((area) => <CanvasStage key={area.id} area={area} active={activeId === area.id} register={register} onTexture={updateTexture} onState={updateEditorState} />)}
+                                {areas.map((area) => <CanvasStage key={area.id} area={area} active={activeId === area.id} register={register} onTexture={updateTexture} onState={updateEditorState} engrave={engrave} garmentColor={garmentColor} />)}
                             </div>
                             <div className="ink-canvas-meta">
                                 <span>Blue dashed line = printable boundary</span>
@@ -1193,7 +1323,7 @@ function DesignerApp({ config }) {
                 </section>
             </main>
             <footer className="ink-designer-footer">
-                <div><span>Print-ready workflow</span><small>Your design is saved with the product and remains editable in the cart.</small></div>
+                <div><span>{engrave ? 'Engrave-ready workflow' : 'Print-ready workflow'}</span><small>{engrave ? 'All artwork is saved in black or monochrome for engraving.' : 'Your design is saved with the product and remains editable in the cart.'}</small></div>
                 <div>
                     <button type="button" className="ink-cart-button" disabled={busy} onClick={addToCart}>{busy ? 'Saving…' : 'Add to cart'}</button>
                     <button type="button" className="ink-next-button" onClick={saveNext}>Save & next →</button>

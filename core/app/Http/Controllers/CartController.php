@@ -22,6 +22,8 @@ class CartController extends Controller
             'quantity'        => 'required|integer|min:0',
             "print_area_id"   => 'required|array',
             "print_area_id.*" => 'required|exists:product_print_areas,id',
+            'selected_area'    => 'required|array',
+            'selected_area.*'  => 'required|json',
         ]);
 
         if ($validator->fails()) {
@@ -52,6 +54,8 @@ class CartController extends Controller
             'quantity'        => 'required|integer|min:0',
             "print_area_id"   => 'required|array',
             "print_area_id.*" => 'required|exists:product_print_areas,id',
+            'selected_area'    => 'required|array',
+            'selected_area.*'  => 'required|json',
         ]);
 
         $product = Product::with('productVariants')->published()->find($request->product_id);
@@ -102,9 +106,57 @@ class CartController extends Controller
                 $printArea->product_print_area_id = $printAreaId;
             }
 
-            $printArea->selected_area_design = $request->selected_area[$key];
+            $printArea->selected_area_design = $this->normalizeDesignerArtwork($request->selected_area[$key], $product);
             $printArea->save();
         }
+    }
+
+    private function normalizeDesignerArtwork(string $design, Product $product): string
+    {
+        if (!$product->usesEngraveDesigner()) {
+            return $design;
+        }
+
+        $decoded = json_decode($design, true);
+        if (!is_array($decoded)) {
+            return $design;
+        }
+
+        $decoded['objects'] = array_map(
+            fn ($object) => is_array($object) ? $this->normalizeEngraveObject($object) : $object,
+            $decoded['objects'] ?? []
+        );
+
+        return json_encode($decoded, JSON_UNESCAPED_SLASHES);
+    }
+
+    private function normalizeEngraveObject(array $object): array
+    {
+        if (strtolower($object['type'] ?? '') === 'image') {
+            $object['filters'] = [[
+                'type' => 'Grayscale',
+                'mode' => 'luminosity',
+            ]];
+        } else {
+            if (array_key_exists('fill', $object) && !in_array($object['fill'], [null, 'transparent'], true)) {
+                $object['fill'] = '#000000';
+            }
+            if (array_key_exists('stroke', $object) && !in_array($object['stroke'], [null, 'transparent'], true)) {
+                $object['stroke'] = '#000000';
+            }
+            if (!empty($object['shadow'])) {
+                $object['shadow'] = null;
+            }
+        }
+
+        if (!empty($object['objects']) && is_array($object['objects'])) {
+            $object['objects'] = array_map(
+                fn ($child) => is_array($child) ? $this->normalizeEngraveObject($child) : $child,
+                $object['objects']
+            );
+        }
+
+        return $object;
     }
 
     private function isInvalidVendor($vendorId) {

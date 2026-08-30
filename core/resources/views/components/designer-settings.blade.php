@@ -41,7 +41,35 @@
     ];
 @endphp
 
-<div class="ink-model-setup" data-designer-settings data-default-settings='@json($defaults)'>
+<div
+    class="ink-model-setup"
+    data-designer-settings
+    data-default-settings='@json($defaults)'
+    data-initial-designer-form="{{ $product->resolvedDesignerForm() }}"
+>
+    <div class="ink-design-form-field">
+        <label for="{{ $idPrefix }}-designer-form" class="form-label required">@lang('Form')</label>
+        <select
+            id="{{ $idPrefix }}-designer-form"
+            name="designer_form"
+            class="form-select form--control"
+            data-designer-form-select
+            required
+        >
+            <option value="{{ \App\Models\Product::DESIGNER_FORM_DTG }}" @selected($product->resolvedDesignerForm() === \App\Models\Product::DESIGNER_FORM_DTG)>
+                @lang('DTG')
+            </option>
+            <option value="{{ \App\Models\Product::DESIGNER_FORM_ENGRAVE }}" @selected($product->resolvedDesignerForm() === \App\Models\Product::DESIGNER_FORM_ENGRAVE)>
+                @lang('Engrave')
+            </option>
+        </select>
+        <small class="ink-design-form-help" data-designer-form-help>
+            {{ $product->usesEngraveDesigner()
+                ? __('Engrave makes all text, shapes, and drawing black and converts uploaded artwork to monochrome.')
+                : __('DTG keeps the full-color design tools currently available to customers.') }}
+        </small>
+    </div>
+
     <div
         class="ink-settings-preview"
         data-model-settings-preview

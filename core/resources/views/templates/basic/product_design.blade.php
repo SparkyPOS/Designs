@@ -23,6 +23,7 @@
         'modelUrl' => $product->designerModelUrl(),
         'previewUrl' => $product->designerPreviewUrl(),
         'modelSettings' => $product->resolvedDesignerSettings(),
+        'designForm' => $product->resolvedDesignerForm(),
         'color' => $colorCode ? '#' . ltrim($colorCode, '#') : '#ffffff',
         'printAreas' => $designerPrintAreas,
         'backUrl' => route('product.details', $product->slug),

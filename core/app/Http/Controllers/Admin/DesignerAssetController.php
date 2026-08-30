@@ -25,6 +25,7 @@ class DesignerAssetController extends Controller
         $request->validate([
             'designer_model' => ['nullable', 'file', new FileTypeValidate(['glb', 'gltf']), 'max:51200'],
             'designer_preview' => ['nullable', 'image', new FileTypeValidate(['jpg', 'jpeg', 'png', 'webp']), 'max:5120'],
+            'designer_form' => ['required', 'in:' . Product::DESIGNER_FORM_DTG . ',' . Product::DESIGNER_FORM_ENGRAVE],
             'designer_settings' => ['nullable', 'array'],
             'designer_settings.model_scale' => ['nullable', 'numeric'],
             'designer_settings.rotation_x' => ['nullable', 'numeric'],
@@ -42,7 +43,7 @@ class DesignerAssetController extends Controller
             'designer_settings.back_height' => ['nullable', 'numeric'],
         ]);
 
-        if (!$request->hasFile('designer_model') && !$request->hasFile('designer_preview') && !$request->has('designer_settings')) {
+        if (!$request->hasFile('designer_model') && !$request->hasFile('designer_preview') && !$request->has('designer_settings') && !$request->has('designer_form')) {
             $notify[] = ['error', 'Choose a 3D asset or update its settings'];
             return back()->withNotify($notify);
         }
@@ -68,6 +69,8 @@ class DesignerAssetController extends Controller
         if ($request->has('designer_settings')) {
             $product->designer_settings = Product::normalizeDesignerSettings($request->input('designer_settings', []));
         }
+
+        $product->designer_form = $request->input('designer_form', Product::DESIGNER_FORM_DTG);
 
         $product->save();
 

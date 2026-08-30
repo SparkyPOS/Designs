@@ -260,6 +260,8 @@ class ProductController extends Controller {
             $product->designer_settings = Product::normalizeDesignerSettings($request->input('designer_settings', []));
         }
 
+        $product->designer_form = $request->input('designer_form', Product::DESIGNER_FORM_DTG);
+
         $product->is_published = ($request->published ?? null) ? Status::YES : Status::NO;
         $product->save();
 

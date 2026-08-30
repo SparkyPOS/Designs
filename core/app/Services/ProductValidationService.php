@@ -100,6 +100,7 @@ class ProductValidationService {
         $validation = [
             'main_image'     => ['nullable', 'image', new FileTypeValidate(['jpeg', 'jpg', 'png']), 'max:' . self::MAX_PRODUCT_IMAGE_SIZE_KB],
             'designer_model' => ['nullable', 'file', new FileTypeValidate(['glb']), 'max:51200'],
+            'designer_form' => 'required|in:' . Product::DESIGNER_FORM_DTG . ',' . Product::DESIGNER_FORM_ENGRAVE,
             'designer_settings' => 'nullable|array',
             'designer_settings.model_scale' => 'nullable|numeric',
             'designer_settings.rotation_x' => 'nullable|numeric',

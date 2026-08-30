@@ -27,8 +27,11 @@
 .ink-view-buttons button,.ink-print-tabs button { border:1px solid var(--ink-line);background:#fff;color:#475569;border-radius:9px;padding:8px 16px;font-weight:700;font-size:12px; }
 .ink-view-buttons button.active,.ink-print-tabs button.active { border-color:var(--ink-blue);background:#eff6ff;color:var(--ink-blue); }
 .ink-side-label { color:#475569!important;background:#f8fafc;border:1px solid var(--ink-line);border-radius:999px;padding:6px 10px;font-size:11px!important;text-transform:none!important;letter-spacing:0!important; }
+.ink-engrave-badge { color:#111827!important;background:#f3f4f6;border-color:#9ca3af; }
 .ink-editor-grid { display:grid;grid-template-columns:192px minmax(440px,1fr);min-height:578px; }
 .ink-tools { border-right:1px solid var(--ink-line);background:#fbfcfe;display:flex;flex-direction:column;min-height:0; }
+.ink-engrave-notice { display:flex;align-items:center;gap:7px;padding:9px 10px;background:#111827;color:#fff;font-size:9px;font-weight:750;line-height:1.35; }
+.ink-engrave-notice i { width:9px;height:9px;flex:none;border:2px solid #fff;border-radius:50%;background:#000; }
 .ink-tool-tabs { display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--ink-line); }
 .ink-tool-tabs button { border:0;border-right:1px solid var(--ink-line);border-bottom:1px solid var(--ink-line);background:#fff;padding:11px 4px;color:#64748b;font-size:11px;font-weight:700; }
 .ink-tool-tabs button:nth-child(even) { border-right:0; }
@@ -44,6 +47,8 @@
 .ink-secondary-tool { background:#fff;color:#334155;border:1px solid var(--ink-line); }
 .ink-inline-tools { display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px; }
 .ink-inline-tools button,.ink-inline-tools input { width:100%;height:34px!important;margin:0!important;border:1px solid var(--ink-line);border-radius:7px;background:#fff; }
+.ink-fixed-black { min-height:34px;display:flex!important;align-items:center;justify-content:center;gap:6px;padding:6px 8px;border:1px solid #d1d5db;border-radius:7px;background:#f9fafb;color:#111827!important;font-size:9px!important;font-weight:800;line-height:1.2; }
+.ink-fixed-black i { display:block;width:14px;height:14px;border-radius:4px;background:#000; }
 .ink-upload { min-height:170px;border:1.5px dashed #94a3b8;border-radius:12px;display:flex!important;align-items:center;justify-content:center;flex-direction:column;text-align:center;cursor:pointer;background:#fff;margin:0!important; }
 .ink-upload span { font-size:30px;color:var(--ink-blue);line-height:1.2; }
 .ink-upload b { color:#1e293b;font-size:12px;margin-top:7px; }
@@ -70,10 +75,17 @@
 .ink-layer-list p { margin:3px 0 6px;color:#94a3b8;font-size:9px;line-height:1.45; }
 .ink-shortcuts { display:block;margin-top:8px;color:#94a3b8;font-size:8px;line-height:1.35; }
 .ink-canvas-column { min-width:0;display:flex;flex-direction:column; }
-.ink-canvas-actions { min-height:47px;border-bottom:1px solid var(--ink-line);display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#fff; }
+.ink-canvas-actions { min-height:47px;border-bottom:1px solid var(--ink-line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:6px 10px;background:#fff; }
 .ink-canvas-actions>div { display:flex;gap:5px; }
 .ink-canvas-actions button { height:32px;min-width:32px;padding:0 8px;border:1px solid var(--ink-line);background:#fff;border-radius:7px;color:#475569;font-size:11px;font-weight:700; }
 .ink-canvas-actions button:hover { color:var(--ink-blue);border-color:#93c5fd; }
+.ink-canvas-actions .ink-garment-color { min-height:32px;align-items:center;gap:4px;padding:3px 5px 3px 8px;border:1px solid var(--ink-line);border-radius:8px;background:#f8fafc; }
+.ink-garment-color span { margin-right:2px;color:#475569;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em; }
+.ink-canvas-actions .ink-garment-color button { width:22px;height:22px;min-width:22px;padding:0;border-radius:50%;background:var(--swatch-color);box-shadow:inset 0 0 0 1px rgba(15,23,42,.16); }
+.ink-canvas-actions .ink-garment-color button.active { border-color:#fff;box-shadow:0 0 0 2px var(--ink-blue),inset 0 0 0 1px rgba(15,23,42,.18); }
+.ink-garment-color label { position:relative;width:22px;height:22px;margin:0;overflow:hidden;border:1px dashed #94a3b8;border-radius:50%;background:conic-gradient(#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7,#ef4444);cursor:pointer; }
+.ink-garment-color label::after { content:'+';position:absolute;inset:4px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#334155;font-size:11px;font-weight:900;pointer-events:none; }
+.ink-garment-color input[type=color] { position:absolute;width:1px;height:1px;opacity:0; }
 .ink-canvas-wrap { flex:1;min-height:455px;background:#eef1f5;display:grid;place-items:center;padding:22px;overflow:hidden; }
 .ink-canvas-stage { display:none;max-width:100%;box-shadow:0 8px 25px rgba(15,23,42,.12);line-height:0;background:#fff; }
 .ink-canvas-stage.is-active { display:block; }
@@ -114,6 +126,7 @@
     .ink-canvas-actions { display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;padding:8px 10px; }
     .ink-canvas-actions>div { min-width:0; }
     .ink-canvas-actions>div:nth-child(2) { justify-content:flex-end; }
+    .ink-canvas-actions .ink-garment-color { grid-column:1/-1;justify-content:center; }
     .ink-canvas-actions>div:last-child { grid-column:1/-1; }
     .ink-canvas-actions>div:last-child button { flex:1; }
     .ink-canvas-actions button { min-width:44px;height:44px;padding:0 5px; }
@@ -127,6 +140,10 @@
 .ink-designer button:focus-visible,.ink-designer input:focus-visible,.ink-designer select:focus-visible,.ink-back:focus-visible { outline:2px solid var(--ink-blue);outline-offset:2px; }
 
 .ink-settings-preview { margin-bottom:16px; }
+.ink-design-form-field { margin-bottom:16px;padding:16px;border:1px solid var(--ink-line);border-radius:12px;background:#fff; }
+.ink-design-form-field .form-label { display:block;margin-bottom:7px;color:var(--ink-navy);font-size:13px;font-weight:700; }
+.ink-design-form-field select { width:100%;min-height:44px; }
+.ink-design-form-help { display:block;margin-top:7px;color:var(--ink-muted);font-size:11px;line-height:1.5; }
 .ink-settings-preview-card { border:1px solid var(--ink-line);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.06); }
 .ink-settings-preview-heading { min-height:52px;padding:10px 14px;border-bottom:1px solid var(--ink-line);display:flex;align-items:center;justify-content:space-between;gap:12px; }
 .ink-settings-preview-heading strong,.ink-settings-preview-heading small { display:block; }
