@@ -152,6 +152,12 @@ class ProductController extends Controller {
     public function productDesign($slug, $variantId = null) {
         $pageTitle      = "Product Design";
         $product        = Product::with('attributes')->where('slug', $slug)->published()->firstOrFail();
+
+        if (!$product->usesDesigner()) {
+            $notify[] = ['error', 'This product does not support the product designer'];
+            return to_route('product.details', $product->slug)->withNotify($notify);
+        }
+
         $printAreas     = $product->productPrintAreas;
         $productVariant = null;
         $colorCode = null;
@@ -194,6 +200,12 @@ class ProductController extends Controller {
         $pageTitle   = "Product Design";
 
         $product = $cartProduct->product;
+
+        if (!$product->usesDesigner()) {
+            $notify[] = ['error', 'This product does not support the product designer'];
+            return to_route('product.details', $product->slug)->withNotify($notify);
+        }
+
         $productVariant = $cartProduct->productVariant;
         $printAreas = $product->productPrintAreas;
         $cartPrintAreas = $cartProduct ? $cartProduct->cartPrintAreas : [];
