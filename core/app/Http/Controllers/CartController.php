@@ -20,9 +20,9 @@ class CartController extends Controller
             'product_id'      => 'required|exists:products,id',
             'variant_id'      => 'nullable|exists:product_variants,id',
             'quantity'        => 'required|integer|min:0',
-            "print_area_id"   => 'required|array',
+            "print_area_id"   => 'nullable|array',
             "print_area_id.*" => 'required|exists:product_print_areas,id',
-            'selected_area'    => 'required|array',
+            'selected_area'    => 'nullable|array',
             'selected_area.*'  => 'required|json',
         ]);
 
@@ -31,6 +31,10 @@ class CartController extends Controller
         }
 
         $product = Product::with('productVariants')->published()->find($request->product_id);
+
+        if ($product->usesDesigner() && (blank($request->print_area_id) || blank($request->selected_area))) {
+            return responseError('validation_error', 'A design is required for this product');
+        }
 
         if ($product->product_type == Status::PRODUCT_TYPE_VARIABLE && $request->variant_id == NULL) {
             return responseError('validation_error', 'Product not found');
@@ -52,13 +56,18 @@ class CartController extends Controller
             'product_id'      => 'required|exists:products,id',
             'variant_id'      => 'nullable|exists:product_variants,id',
             'quantity'        => 'required|integer|min:0',
-            "print_area_id"   => 'required|array',
+            "print_area_id"   => 'nullable|array',
             "print_area_id.*" => 'required|exists:product_print_areas,id',
-            'selected_area'    => 'required|array',
+            'selected_area'    => 'nullable|array',
             'selected_area.*'  => 'required|json',
         ]);
 
         $product = Product::with('productVariants')->published()->find($request->product_id);
+
+        if ($product->usesDesigner() && (blank($request->print_area_id) || blank($request->selected_area))) {
+            $notify[] = ['error', 'A design is required for this product'];
+            return back()->withNotify($notify);
+        }
 
         if ($product->product_type == Status::PRODUCT_TYPE_VARIABLE && $request->variant_id == NULL) {
             $notify[] = ['error', 'Product not found'];
@@ -98,7 +107,7 @@ class CartController extends Controller
 
         $cartProduct->save();
 
-        foreach ($request->print_area_id as $key => $printAreaId) {
+        foreach ($request->print_area_id ?? [] as $key => $printAreaId) {
             $printArea = CartPrintArea::where('cart_id', $cartProduct->id)->where('product_print_area_id', $printAreaId)->first();
             if (!$printArea) {
                 $printArea                        = new CartPrintArea();

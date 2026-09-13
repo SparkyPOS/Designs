@@ -28,9 +28,23 @@
 
 <div class="card custom--card mt-4">
     <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between gap-3">
+            <div>
+                <h6 class="mb-1">@lang('Use Product Designer')</h6>
+                <p class="text-muted mb-0">
+                    @lang('Let customers personalize this product with the 3D product designer. When enabled, you must upload a GLB model for the 01 Preview in 3D step and select a design image for the 02 Create your design step.')
+                </p>
+            </div>
+            <x-toggle-switch name="use_designer" value="1" :checked="$product?->exists ? $product->usesDesigner() : false" id="useDesigner" />
+        </div>
+    </div>
+</div>
+
+<div class="card custom--card mt-4" id="designerAssetsCard">
+    <div class="card-body">
         <div class="row align-items-center gy-3">
             <div class="col-lg-5">
-                <label for="designerModel" class="form--label mb-1">@lang('3D Product Model') <span class="text-muted">(.glb)</span></label>
+                <label for="designerModel" class="form--label mb-1 {{ $product?->designer_model ? '' : 'required' }}">@lang('3D Product Model (01 Preview in 3D)') <span class="text-muted">(.glb)</span></label>
                 <p class="text-muted mb-0">
                     @lang('Upload a self-contained GLB model for the customer 3D designer. Maximum file size: 50 MB.')
                 </p>
@@ -57,8 +71,8 @@
         <hr class="my-4">
         <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
             <div>
-                <h6 class="mb-1">@lang('3D Model Settings')</h6>
-                <p class="text-muted mb-0">@lang('Adjust the initial model view and front/back artwork placement after uploading a GLB. Rotation values are degrees.')</p>
+                <h6 class="mb-1">@lang('3D Model Settings & Design Image (02 Create your design)')</h6>
+                <p class="text-muted mb-0">@lang('Adjust the initial model view and front/back artwork placement after uploading a GLB. Select the design image used for the 02 Create your design step; it is displayed on the design canvas and on the 3D render. Rotation values are degrees.')</p>
             </div>
             <span class="badge badge--success">@lang('Live preview')</span>
         </div>
@@ -83,6 +97,24 @@
 
 @push('script')
     <script type="module" src="{{ asset('assets/designer/designer.js') }}?v={{ @filemtime(base_path('../assets/designer/designer.js')) ?: time() }}"></script>
+    <script>
+        (function($) {
+            'use strict';
+            const toggle = $('#useDesigner');
+            const card = $('#designerAssetsCard');
+
+            function syncDesignerCard() {
+                if (toggle.is(':checked')) {
+                    card.show();
+                } else {
+                    card.hide();
+                }
+            }
+
+            toggle.on('change', syncDesignerCard);
+            syncDesignerCard();
+        })(jQuery);
+    </script>
 @endpush
 
 @push('style')

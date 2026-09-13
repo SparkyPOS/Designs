@@ -97,10 +97,18 @@ class ProductValidationService {
     }
 
     private function media($request, $product) {
+        $useDesigner = (bool) $request->input('use_designer');
+
         $validation = [
             'main_image'     => ['nullable', 'image', new FileTypeValidate(['jpeg', 'jpg', 'png']), 'max:' . self::MAX_PRODUCT_IMAGE_SIZE_KB],
-            'designer_model' => ['nullable', 'file', new FileTypeValidate(['glb']), 'max:51200'],
-            'designer_form' => 'required|in:' . Product::DESIGNER_FORM_DTG . ',' . Product::DESIGNER_FORM_ENGRAVE,
+            'use_designer'   => 'nullable|in:1,0',
+            'designer_model' => [
+                $useDesigner && !$product?->designer_model ? 'required' : 'nullable',
+                'file',
+                new FileTypeValidate(['glb']),
+                'max:51200',
+            ],
+            'designer_form' => ($useDesigner ? 'required' : 'nullable') . '|in:' . Product::DESIGNER_FORM_DTG . ',' . Product::DESIGNER_FORM_ENGRAVE,
             'designer_settings' => 'nullable|array',
             'designer_settings.model_scale' => 'nullable|numeric',
             'designer_settings.rotation_x' => 'nullable|numeric',
@@ -117,6 +125,22 @@ class ProductValidationService {
             'designer_settings.back_width' => 'nullable|numeric',
             'designer_settings.back_height' => 'nullable|numeric',
             'print_area_image' => 'nullable|array',
+            'print_area_image.front' => [
+                function ($attribute, $value, $fail) use ($request, $product) {
+                    if (!$request->input('use_designer')) {
+                        return;
+                    }
+                    if ($value) {
+                        return;
+                    }
+                    $hasCustomFront = $product?->productPrintAreas
+                        ?->first(fn ($area) => !str_contains(strtolower($area->name), 'back') && $area->image !== 'default-product-print-area.png');
+                    if (!$hasCustomFront) {
+                        $fail('The design image (02 Create your design) is required when the product designer is enabled.');
+                    }
+                },
+                'nullable', 'image', new FileTypeValidate(['jpg', 'jpeg', 'png', 'webp']), 'max:10240',
+            ],
             'print_area_image.*' => ['nullable', 'image', new FileTypeValidate(['jpg', 'jpeg', 'png', 'webp']), 'max:10240'],
             'print_area_selected' => 'nullable|array',
             'print_area_selected.front' => 'nullable|json',

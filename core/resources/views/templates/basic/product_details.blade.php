@@ -103,12 +103,27 @@
                             <del class="product-info__price-text d-none" id="regularPrice"></del>
                         @endif
                     </div>
-                    <a href="{{ $product->product_type != Status::PRODUCT_TYPE_VARIABLE ? route('product.design', $product->slug) : 'javascript:void(0)' }}" class="w-100 btn btn--lg btn--base d-inline-flex align-items-center justify-content-between fs-20 mt-4" id="designBtn">
-                        <span class="text">@lang('Start Design')</span>
-                        <span class="icon">
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </span>
-                    </a>
+                    @if ($product->usesDesigner())
+                        <a href="{{ $product->product_type != Status::PRODUCT_TYPE_VARIABLE ? route('product.design', $product->slug) : 'javascript:void(0)' }}" class="w-100 btn btn--lg btn--base d-inline-flex align-items-center justify-content-between fs-20 mt-4" id="designBtn">
+                            <span class="text">@lang('Start Design')</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </span>
+                        </a>
+                    @else
+                        <form action="{{ route('product.buy.now') }}" method="post" id="buyNowForm">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $product->id }}">
+                            <input type="hidden" name="variant_id" value="" id="buyNowVariantId">
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit" class="w-100 btn btn--lg btn--base d-inline-flex align-items-center justify-content-between fs-20 mt-4 {{ $product->product_type == Status::PRODUCT_TYPE_VARIABLE ? 'disabled' : '' }}" id="designBtn">
+                                <span class="text">@lang('Buy Now')</span>
+                                <span class="icon">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </span>
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
 
@@ -282,6 +297,8 @@
             const totalAttribute = "{{ count($product?->attributes ?? []) }}";
             let attributeValues = [];
             const designBtn = $('#designBtn');
+            const usesDesigner = "{{ $product->usesDesigner() ? 1 : 0 }}" == "1";
+            const buyNowVariantInput = $('#buyNowVariantId');
             const desingUrl = "{{ route('product.design', $product->slug) }}";
             const allImages = JSON.parse(`@php echo $images; @endphp`);
             const productVariants = JSON.parse(`@php echo $product->productVariants()->select('attribute_values', 'id', 'sale_price', 'regular_price', 'main_image', 'is_published')->get(); @endphp`);
@@ -304,21 +321,36 @@
                     updateVariantImages(variant);
                     if (variant.is_published == '{{ Status::DISABLE }}') {
                         notify('error', '@lang('This product variant is currently unavailable.')');
-                        designBtn.addClass('disabled').attr('href', `javascript:void(0)`);
+                        disableActionBtn();
                         return;
                     } else {
-                        designBtn.removeClass('disabled').attr('href', `${desingUrl}/${variant.id}`);
+                        if (usesDesigner) {
+                            designBtn.removeClass('disabled').attr('href', `${desingUrl}/${variant.id}`);
+                        } else {
+                            designBtn.removeClass('disabled');
+                            buyNowVariantInput.val(variant.id);
+                        }
                     }
 
                 } else {
-                    designBtn.addClass('disabled').attr('href', `javascript:void(0)`);
+                    disableActionBtn();
                 }
             });
 
-            designBtn.on('click', function() {
+            function disableActionBtn() {
+                designBtn.addClass('disabled');
+                if (usesDesigner) {
+                    designBtn.attr('href', `javascript:void(0)`);
+                } else {
+                    buyNowVariantInput.val('');
+                }
+            }
+
+            designBtn.on('click', function(e) {
                 if (totalAttribute != attributeValues.length) {
+                    e.preventDefault();
                     notify('error', `@lang('Please select variant')`);
-                    designBtn.addClass('disabled').attr('href', `javascript:void(0)`);
+                    disableActionBtn();
                     return;
                 }
             });

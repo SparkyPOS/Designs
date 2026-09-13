@@ -133,6 +133,11 @@ class Product extends Model {
         return getImage(getFilePath('product') . $thumb . $this->main_image);
     }
 
+    public function usesDesigner(): bool {
+        // Legacy products created before the opt-in flag keep using the designer.
+        return $this->use_designer === null || (bool) $this->use_designer;
+    }
+
     public function designerModelUrl() {
         $filename = $this->designer_model ?: '02.glb';
         return asset('assets/models/designer/' . $filename);

@@ -92,9 +92,11 @@
                                         data-question="@lang('Are you sure to delete the product?')" data-action="{{ $cartProduct->id }}">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
-                                    <a class="action-button edit" href="{{ route('product.cart.design', $cartProduct->id) }}">
-                                        <i class="fa-solid fa-pencil"></i>
-                                    </a>
+                                    @if ($cartProduct->product?->usesDesigner())
+                                        <a class="action-button edit" href="{{ route('product.cart.design', $cartProduct->id) }}">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </a>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

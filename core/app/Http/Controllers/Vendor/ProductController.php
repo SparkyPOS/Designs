@@ -243,7 +243,9 @@ class ProductController extends Controller {
             }
         }
 
-        if ($request->hasFile('designer_model')) {
+        $product->use_designer = $request->input('use_designer') ? Status::YES : Status::NO;
+
+        if ($product->use_designer && $request->hasFile('designer_model')) {
             try {
                 $product->designer_model = fileUploader(
                     $request->file('designer_model'),
@@ -257,11 +259,13 @@ class ProductController extends Controller {
             }
         }
 
-        if ($request->has('designer_settings')) {
+        if ($product->use_designer && $request->has('designer_settings')) {
             $product->designer_settings = Product::normalizeDesignerSettings($request->input('designer_settings', []));
         }
 
-        $product->designer_form = $request->input('designer_form', Product::DESIGNER_FORM_DTG);
+        if ($product->use_designer) {
+            $product->designer_form = $request->input('designer_form', Product::DESIGNER_FORM_DTG);
+        }
 
         $product->is_published = ($request->published ?? null) ? Status::YES : Status::NO;
         $product->save();
@@ -304,11 +308,13 @@ class ProductController extends Controller {
 
         $this->ensureDefaultPrintArea($product);
 
-        try {
-            app(ProductPrintAreaService::class)->updateFromRequest($request, $product);
-        } catch (\Exception $exp) {
-            $notify[] = ['error', 'Couldn\'t update the designer canvas images'];
-            return back()->withNotify($notify);
+        if ($product->use_designer) {
+            try {
+                app(ProductPrintAreaService::class)->updateFromRequest($request, $product);
+            } catch (\Exception $exp) {
+                $notify[] = ['error', 'Couldn\'t update the designer canvas images'];
+                return back()->withNotify($notify);
+            }
         }
 
         $notify[] = ['success', $request->isUpdateOrNew === 'new'
